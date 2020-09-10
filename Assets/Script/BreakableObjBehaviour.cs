@@ -7,13 +7,10 @@ namespace chenyi2
     {
         private IBreakable breakable;
         private Transform parent;
+        private List<GameObject> cells = new List<GameObject>();
         private void Awake()
         {
             parent = transform;
-            if (gameObject.GetComponent<MeshFilter>())
-            {
-                breakable = new BreakableObj(gameObject.GetComponent<MeshFilter>().mesh);
-            }
         }
         private void Start()
         {
@@ -31,19 +28,15 @@ namespace chenyi2
                         var cell = GameObject.CreatePrimitive(PrimitiveType.Cube);
                         cell.transform.parent = parent;
                         cell.transform.localPosition = new Vector3(x, y, z);
+                        cells.Add(cell);
                     }
                 }
             }
+            breakable = new BreakableObj(cells);
         }
         public IBreakable GetBreakable()
         {
             return breakable;
-        }
-        public void Refresh()
-        {
-            Mesh mesh = new Mesh();
-            breakable.GetNew(ref mesh);
-            gameObject.GetComponent<MeshFilter>().mesh = mesh;
         }
     }
 }

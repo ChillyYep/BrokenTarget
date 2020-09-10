@@ -5,13 +5,12 @@ namespace chenyi2
 {
     public interface IBreakable
     {
-        void GetNew(ref Mesh mesh);
-        void CreateNew();
         List<ModelInfo> ModelInfos { get; set; }
     }
     public class OBBBound
     {
         Vector3[] vertices = new Vector3[8];
+        Vector3 center;
         public void ComputeOBBBound(Mesh mesh)
         {
             //目前都是立方体
@@ -23,61 +22,33 @@ namespace chenyi2
     }
     public class ModelInfo
     {
-        public List<Vector3> vertices;
-        public List<int> triangles;
-        public List<Vector3> normals;
-        public List<Vector2> uvs;
+        public OBBBound bound;
+        public Mesh mesh;
     }
     /// <summary>
     /// 可被击碎的网格物体，增加辅助数据结构，加快算法
     /// </summary>
     public class BreakableObj : IBreakable
     {
-        private Mesh oldMesh;
-        private Mesh newMesh;
         public List<ModelInfo> ModelInfos { get; set; }
 
-        public BreakableObj(Mesh mesh)
+        public BreakableObj(List<GameObject> cells)
         {
-            this.oldMesh = mesh;
             ModelInfos = new List<ModelInfo>();
-            Init();
-        }
-        protected virtual void Init()
-        {
-            ModelInfo info = new ModelInfo();
-            info.triangles = new List<int>(oldMesh.triangles);
-            info.vertices = new List<Vector3>(oldMesh.vertices);
-            info.normals = new List<Vector3>(oldMesh.normals);
-            info.uvs = new List<Vector2>(oldMesh.uv);
-            ModelInfos.Add(info);
-        }
-        public void CreateNew()
-        {
-            newMesh = new Mesh();
-            List<Vector3> normals = new List<Vector3>();
-            List<Vector3> vertices = new List<Vector3>();
-            List<int> triangles = new List<int>();
-            List<Vector2> uvs = new List<Vector2>();
-            foreach (var modelInfo in ModelInfos)
+            foreach(var modelInfo in cells)
             {
-                vertices.AddRange(modelInfo.vertices);
-                normals.AddRange(modelInfo.normals);
-                triangles.AddRange(modelInfo.triangles);
-                uvs.AddRange(modelInfo.uvs);
+                var meshFilter = modelInfo.GetComponent<MeshFilter>();
+                if(meshFilter != null)
+                {
+                    OBBBound bound = new OBBBound();
+                    bound.ComputeOBBBound(meshFilter.mesh);
+                    ModelInfos.Add(new ModelInfo()
+                    {
+                        bound = bound,
+                        mesh = meshFilter.mesh
+                    });
+                }
             }
-            newMesh.vertices = vertices.ToArray();
-            newMesh.normals = normals.ToArray();
-            newMesh.triangles = triangles.ToArray();
-            newMesh.uv = uvs.ToArray();
-        }
-        public void GetNew(ref Mesh mesh)
-        {
-            if (newMesh == null)
-            {
-                CreateNew();
-            }
-            mesh = newMesh;
         }
     }
 

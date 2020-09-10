@@ -11,7 +11,10 @@ namespace chenyi2
         }
         public override void Traversal(chenyi.IBreakable breakable)
         {
+            foreach(var item in breakable.ModelInfos)
+            {
 
+            }
         }
     }
 }
