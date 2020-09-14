@@ -3,7 +3,10 @@ using System.Collections.Generic;
 using UnityEngine;
 namespace chenyi
 {
-    //[RequireComponent(typeof(MeshFilter))]
+    /// <summary>
+    /// 持有可破碎物体的数据
+    /// </summary>
+    [RequireComponent(typeof(MeshFilter))]
     public class BreakableObjBehaviour : MonoBehaviour
     {
         private IBreakable breakable;
@@ -18,7 +21,7 @@ namespace chenyi
         {
             return breakable;
         }
-        public void Refresh()
+        public void Explode()
         {
             Mesh mesh = new Mesh();
             breakable.GetNew(ref mesh);

@@ -3,6 +3,10 @@ using System.Collections.Generic;
 using UnityEngine;
 namespace chenyi
 {
+    public interface IVistor
+    {
+        void Traversal(IBreakable target);
+    }
     public interface IBreakable
     {
         void GetNew(ref Mesh mesh);
@@ -49,23 +53,39 @@ namespace chenyi
             List<Vector2> uvs = new List<Vector2>();
             foreach (var modelInfo in ModelInfos)
             {
+                int Count = vertices.Count;
                 vertices.AddRange(modelInfo.vertices);
                 normals.AddRange(modelInfo.normals);
-                triangles.AddRange(modelInfo.triangles);
                 uvs.AddRange(modelInfo.uvs);
+                //有问题
+                for(int i=0;i<modelInfo.triangles.Count;++i)
+                {
+                    triangles.Add(modelInfo.triangles[i] + Count);
+                }
             }
             newMesh.vertices = vertices.ToArray();
-            newMesh.normals = normals.ToArray();
+            //newMesh.normals = normals.ToArray();
             newMesh.triangles = triangles.ToArray();
-            newMesh.uv = uvs.ToArray();
+            //newMesh.uv = uvs.ToArray();
         }
         public void GetNew(ref Mesh mesh)
         {
-            if(newMesh==null)
+            if (newMesh == null)
             {
                 CreateNew();
             }
-            mesh=newMesh;
+            mesh = newMesh;
+        }
+        public void ComputeInterpolation(int triangleBeginIndex, Vector3 curPos)
+        {
+            Vector3 p1 = newMesh.vertices[newMesh.triangles[triangleBeginIndex]];
+            Vector3 p2 = newMesh.vertices[newMesh.triangles[triangleBeginIndex + 1]];
+            Vector3 p3 = newMesh.vertices[newMesh.triangles[triangleBeginIndex + 2]];
+            float p2Factor = Vector3.Dot((p2 - p1).normalized, curPos - p1);
+            for (int i = 0; i < 3; ++i)
+            {
+
+            }
         }
     }
 }

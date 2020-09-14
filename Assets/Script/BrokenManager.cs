@@ -6,8 +6,10 @@ using chenyi;
 public class BrokenManager : MonoBehaviour
 {
     Vector3 crossPoint;
+    Vector3 crossNormal;
+    Vector3 hitDirection;
     GameObject crossTarget;
-    DetectionSphere detectionSphere = new DetectionSphere(Vector3.one, 0.5f, SegmentVerticalType.Two, SegmentCircleType.Four);
+    DetectionSphere detectionSphere = new DetectionSphere(Vector3.one, 0.5f, SegmentVerticalType.Four, SegmentCircleType.Five);
     public Transform gizmosParent;
     private GameObject explodeSphere;
     private bool catched = false;
@@ -18,6 +20,8 @@ public class BrokenManager : MonoBehaviour
         if (Physics.Raycast(ray, out raycastHit) && Input.GetMouseButtonDown(0))
         {
             crossPoint = raycastHit.point;
+            crossNormal = raycastHit.normal;
+            hitDirection = ray.direction;
             crossTarget = raycastHit.collider.gameObject;
             return true;
         }
@@ -27,10 +31,10 @@ public class BrokenManager : MonoBehaviour
     {
         GameObject sphere = new GameObject();
         var meshfilter = sphere.AddComponent<MeshFilter>();
+        sphere.transform.position = center;
         detectionSphere.radius = radius;
         detectionSphere.DrawSphere();
         meshfilter.mesh = detectionSphere.SphereMesh;
-        sphere.transform.position = center;
         Material mat = new Material(Shader.Find("Standard"));
         mat.color = Color.red;
         sphere.AddComponent<MeshRenderer>().material = mat;
@@ -38,7 +42,7 @@ public class BrokenManager : MonoBehaviour
     }
     private void ClearGizmos()
     {
-        if (Input.GetMouseButtonUp(0))
+        if (Input.GetMouseButtonUp(0) && explodeSphere != null)
         {
             //for (int i = 0; i < gizmosParent.transform.childCount; ++i)
             //{
@@ -68,11 +72,13 @@ public class BrokenManager : MonoBehaviour
         {
             detectionSphere.center = crossPoint;
             DrawGizmos();
+            //var breakableBehaviour = crossTarget.transform.parent.GetComponent<BreakableObjBehaviour>();
             var breakableBehaviour = crossTarget.GetComponent<BreakableObjBehaviour>();
             if (breakableBehaviour != null)
             {
                 detectionSphere.Traversal(breakableBehaviour.GetBreakable());
-                breakableBehaviour.Refresh();
+                //breakableBehaviour.Explode(20f, hitDirection);
+                breakableBehaviour.Explode();
             }
         }
     }
