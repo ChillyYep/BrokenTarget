@@ -3,10 +3,25 @@ using System.Collections.Generic;
 using UnityEngine;
 namespace chenyi
 {
-    public class DetectionSphere : IVistor
+    public class DetectionSphere : IVistor, IConvertable
     {
         public Vector3 center { get; set; }
         public float radius { get; set; }
+        private Transform _transfrom;
+        public Transform transform {
+            get
+            {
+                return _transfrom;
+            }
+            set
+            {
+                _transfrom = value;
+                World2Object = transform.worldToLocalMatrix;
+                Object2World = transform.localToWorldMatrix;
+            }
+        }
+        public Matrix4x4 World2Object { get; private set; }
+        public Matrix4x4 Object2World { get; private set; }
         public SegmentVerticalType segmentVerticalType { get; set; }
         public SegmentCircleType segmentCircleType { get; set; }
         private Mesh sphereMesh;
@@ -30,6 +45,7 @@ namespace chenyi
             this.segmentCircleType = segmentCircleType;
             this.center = center;
             this.radius = radius;
+
         }
         public bool IsInSphere(Vector3 targetPoint)
         {
@@ -57,17 +73,9 @@ namespace chenyi
         /// <param name="target"></param>
         public virtual void Traversal(IBreakable breakable)
         {
-
-            Vector3[] sphereVertices = sphereMesh.vertices;
-            int[] sphereTriangle = sphereMesh.triangles;
-            TriangleFace[] triangleFace = new TriangleFace[]{
-                new TriangleFace(),
-                new TriangleFace(),
-                new TriangleFace()
-            };
+            TriangleFace breakableFace = new TriangleFace();
             List<ModelInfo> newModelInfoList = new List<ModelInfo>();
             ModelInfo addModelInfo = new ModelInfo();
-            bool beginGenNewTriangle = false;//对每一个三角形而言，开始生成新的三角形
             CreateNewModelInfo(ref addModelInfo);
             foreach (var target in breakable.ModelInfos)
             {
@@ -75,114 +83,31 @@ namespace chenyi
                 CreateNewModelInfo(ref newModelInfo);
                 for (int i = 0; i < target.triangles.Count; i += 3)
                 {
-                    beginGenNewTriangle = false;
-                    Reset();
                     Vector3[] targetPoint = new Vector3[]
                     {
-                        target.vertices[target.triangles[i]],
-                        target.vertices[target.triangles[i + 1]],
-                        target.vertices[target.triangles[i + 2]]
+                        breakable.Object2World.MultiplyPoint(target.vertices[target.triangles[i]]),
+                        breakable.Object2World.MultiplyPoint(target.vertices[target.triangles[i + 1]]),
+                        breakable.Object2World.MultiplyPoint(target.vertices[target.triangles[i + 2]])
                     };
-                    int[] indices = new int[]
-                    {
-                        strategy.GetTriangleIndex(targetPoint[0], center),
-                        strategy.GetTriangleIndex(targetPoint[1], center),
-                        strategy.GetTriangleIndex(targetPoint[2], center)
-                    };
-                    for (int j = 0; j < 3; ++j)
-                    {
-                        int triangleIndex = indices[j] * 3;
-                        triangleFace[j].Compute(sphereVertices[sphereTriangle[triangleIndex]] + center, sphereVertices[sphereTriangle[triangleIndex + 1]] + center, sphereVertices[sphereTriangle[triangleIndex + 2]] + center);
-                    }
-                    int count = 0;
-                    for (int j = 0; j < 3; ++j)
-                    {
-                        Vector3 crossPoint;
-                        if (!triangleFace[j].ComputeCrossPoint(new Line() { p1 = center, p2 = targetPoint[j] }, out crossPoint))
-                        {
-                            continue;
-                        }
-                        float magnitude1 = (targetPoint[j] - center).magnitude;
-                        float magnitude2 = (crossPoint - center).magnitude;
-                        if (magnitude1 > magnitude2 || Mathf.Approximately(magnitude1, magnitude2))
-                        {
-                            count++;
-                            triangleVertexInSphere[j] = false;
-                        }
-                    }
-                    switch (count)
-                    {
-                        case 0:
-                            break;
-                        case 1:
-                            break;
-                        case 2:
-                            ////两个点在球外
-                            //TriangleFace face = new TriangleFace();
-                            //if(!triangleVertexInSphere[0])
-                            //{
-                            //    addModelInfo.vertices.Add(targetPoint[2]);
-                            //    addModelInfo.vertices.Add(targetPoint[1]);
-                            //}
-                            //else if(!triangleVertexInSphere[1])
-                            //{
-                            //    addModelInfo.vertices.Add(targetPoint[0]);
-                            //    addModelInfo.vertices.Add(targetPoint[2]);
-                            //}
-                            //else
-                            //{
-                            //    addModelInfo.vertices.Add(targetPoint[1]);
-                            //    addModelInfo.vertices.Add(targetPoint[0]);
-                            //}
-                            //for (int j = 0; j < 3; ++j)
-                            //{
-                            //    if (!triangleVertexInSphere[j])
-                            //    {
-                            //        addModelInfo.vertices.Add(targetPoint[j]);
-                            //    }
-                            //}
-                            //Line tempLine = new Line();
-                            //face.Compute(targetPoint[0], targetPoint[1], targetPoint[2]);
-                            //for (int j = 0; j < sphereMesh.triangles.Length; j += 3)
-                            //{
-                            //    Vector3 crossPoint;
-                            //    for (int x = 0; x < 3; ++x)
-                            //    {
-                            //        tempLine.p1 = sphereMesh.vertices[sphereMesh.triangles[j + x]] + center;
-                            //        tempLine.p2 = sphereMesh.vertices[sphereMesh.triangles[j + (x + 1) % 3]] + center;
-                            //        if (face.ComputeCrossPoint(tempLine, out crossPoint, true))
-                            //        {
-                            //            addModelInfo.vertices.Add(crossPoint);
-                            //            if (!beginGenNewTriangle)
-                            //            {
-                            //                addModelInfo.triangles.Add(0);
-                            //                addModelInfo.triangles.Add(addModelInfo.vertices.Count - 1);
-                            //                addModelInfo.triangles.Add(1);
-                            //                beginGenNewTriangle = true;
-                            //            }
-                            //            else
-                            //            {
-                            //                addModelInfo.triangles.Add(addModelInfo.vertices.Count - 1);
-                            //                addModelInfo.triangles.Add(1);
-                            //                addModelInfo.triangles.Add(addModelInfo.vertices.Count - 2);
-                            //            }
-                            //        }
-                            //    }
-                            //}
-                            break;
-                        case 3:
-                            //newModelInfo.triangles.Add(target.triangles[i]);
-                            //newModelInfo.triangles.Add(target.triangles[i + 1]);
-                            //newModelInfo.triangles.Add(target.triangles[i + 2]);
-                            break;
-                    }
-                    TriangleFace face = new TriangleFace();
-                    face.Compute(targetPoint[0], targetPoint[1], targetPoint[2]);
-                    if(face.IsSphereOutTriangle(center,radius))
+                    breakableFace.Compute(targetPoint[0], targetPoint[1], targetPoint[2]);
+                    //用球半径粗略计算哪些三角形要加入三角形切割，其中可能会有不被切割的三角形
+                    TriangleOutInfo triangleOutInfo;
+                    if (breakableFace.IsSphereOutTriangle(center, radius, out triangleOutInfo, new DefaultCutTriangleStrategy(segmentCircleType, breakable.transform)))
                     {
                         newModelInfo.triangles.Add(target.triangles[i]);
                         newModelInfo.triangles.Add(target.triangles[i + 1]);
                         newModelInfo.triangles.Add(target.triangles[i + 2]);
+                    }
+                    else
+                    {
+                        int tempCount = addModelInfo.vertices.Count;
+                        for (int x = 0; x < triangleOutInfo.triangles.Count; ++x)
+                        {
+                            addModelInfo.triangles.Add(triangleOutInfo.triangles[x] + tempCount);
+                        }
+                        addModelInfo.vertices.AddRange(triangleOutInfo.vertexes);
+                        addModelInfo.normals.AddRange(triangleOutInfo.normals);
+                        addModelInfo.uvs.AddRange(triangleOutInfo.uvs);
                     }
                 }
                 newModelInfo.vertices.AddRange(target.vertices);
@@ -190,7 +115,7 @@ namespace chenyi
                 newModelInfo.uvs.AddRange(target.uvs);
                 newModelInfoList.Add(newModelInfo);
             }
-            //newModelInfoList.Add(addModelInfo);
+            newModelInfoList.Add(addModelInfo);
             breakable.ModelInfos.Clear();
             foreach (var modelInfo in newModelInfoList)
             {

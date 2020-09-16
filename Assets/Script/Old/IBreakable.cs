@@ -7,8 +7,14 @@ namespace chenyi
     {
         void Traversal(IBreakable target);
     }
-    public interface IBreakable
+    public interface IConvertable
     {
+        Matrix4x4 World2Object { get; }
+        Matrix4x4 Object2World { get; }
+    }
+    public interface IBreakable: IConvertable
+    {
+        Transform transform { get; }
         void GetNew(ref Mesh mesh);
         void CreateNew();
         List<ModelInfo> ModelInfos { get; set; }
@@ -27,11 +33,18 @@ namespace chenyi
     {
         private Mesh oldMesh;
         private Mesh newMesh;
-        public List<ModelInfo> ModelInfos { get; set; }
+        public Transform transform { get; private set; }
 
-        public BreakableObj(Mesh mesh)
+        public List<ModelInfo> ModelInfos { get; set; }
+        public Matrix4x4 World2Object { get; private set; }
+        public Matrix4x4 Object2World { get; private set; }
+
+        public BreakableObj(Mesh mesh, Transform transform)
         {
             this.oldMesh = mesh;
+            this.transform = transform;
+            World2Object = transform.worldToLocalMatrix;
+            Object2World = transform.localToWorldMatrix;
             ModelInfos = new List<ModelInfo>();
             Init();
         }
@@ -57,8 +70,7 @@ namespace chenyi
                 vertices.AddRange(modelInfo.vertices);
                 normals.AddRange(modelInfo.normals);
                 uvs.AddRange(modelInfo.uvs);
-                //有问题
-                for(int i=0;i<modelInfo.triangles.Count;++i)
+                for (int i = 0; i < modelInfo.triangles.Count; ++i)
                 {
                     triangles.Add(modelInfo.triangles[i] + Count);
                 }

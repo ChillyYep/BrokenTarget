@@ -52,6 +52,7 @@ public interface GenDetectionObjectStrategy
     /// <param name="offset">圆心坐标偏移</param>
     /// <returns></returns>
     int GetTriangleIndex(Vector3 point, Vector3 offset);
+    int GetTriangleIndex(Vector3 point);
 }
 public class DefaultGenSphereStrategy : GenDetectionObjectStrategy
 {
@@ -174,6 +175,11 @@ public class DefaultGenSphereStrategy : GenDetectionObjectStrategy
         mesh.vertices = verticis.ToArray();
         mesh.triangles = triangles.ToArray();
         mesh.normals = mesh.vertices;
+    }
+    public int GetTriangleIndex(Vector3 point)
+    {
+        return GetTriangleIndex(Mathf.Atan(point.y / Mathf.Sqrt(Mathf.Pow(point.x, 2) + Mathf.Pow(point.z, 2))),
+            TangentEx(point.x, point.z));
     }
     public int GetTriangleIndex(Vector3 point, Vector3 offset)
     {

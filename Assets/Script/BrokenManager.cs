@@ -9,7 +9,7 @@ public class BrokenManager : MonoBehaviour
     Vector3 crossNormal;
     Vector3 hitDirection;
     GameObject crossTarget;
-    DetectionSphere detectionSphere = new DetectionSphere(Vector3.one, 0.5f, SegmentVerticalType.Four, SegmentCircleType.Five);
+    DetectionSphere detectionSphere = new DetectionSphere(Vector3.one, 0.3f, SegmentVerticalType.Four, SegmentCircleType.Eighteen);
     public Transform gizmosParent;
     private GameObject explodeSphere;
     private bool catched = false;
@@ -33,6 +33,7 @@ public class BrokenManager : MonoBehaviour
         var meshfilter = sphere.AddComponent<MeshFilter>();
         sphere.transform.position = center;
         detectionSphere.radius = radius;
+        detectionSphere.transform = sphere.transform;
         detectionSphere.DrawSphere();
         meshfilter.mesh = detectionSphere.SphereMesh;
         Material mat = new Material(Shader.Find("Standard"));

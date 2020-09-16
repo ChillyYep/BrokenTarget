@@ -14,7 +14,7 @@ namespace chenyi
         {
             if (gameObject.GetComponent<MeshFilter>())
             {
-                breakable = new BreakableObj(gameObject.GetComponent<MeshFilter>().mesh);
+                breakable = new BreakableObj(gameObject.GetComponent<MeshFilter>().mesh,transform);
             }
         }
         public IBreakable GetBreakable()
