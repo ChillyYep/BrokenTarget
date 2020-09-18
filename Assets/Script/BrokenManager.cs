@@ -9,9 +9,8 @@ public class BrokenManager : MonoBehaviour
     Vector3 crossNormal;
     Vector3 hitDirection;
     GameObject crossTarget;
-    DetectionSphere detectionSphere = new DetectionSphere(Vector3.one, 0.3f, SegmentVerticalType.Four, SegmentCircleType.Eighteen);
     public Transform gizmosParent;
-    private GameObject explodeSphere;
+    private List<GameObject> gizmos = new List<GameObject>();
     private bool catched = false;
     private bool CatchSelectTarget()
     {
@@ -27,58 +26,30 @@ public class BrokenManager : MonoBehaviour
         }
         return false;
     }
-    private GameObject DrawSphere(Vector3 center, float radius)
+    public void ClearGizmos()
     {
-        GameObject sphere = new GameObject();
-        var meshfilter = sphere.AddComponent<MeshFilter>();
-        sphere.transform.position = center;
-        detectionSphere.radius = radius;
-        detectionSphere.transform = sphere.transform;
-        detectionSphere.DrawSphere();
-        meshfilter.mesh = detectionSphere.SphereMesh;
-        Material mat = new Material(Shader.Find("Standard"));
-        mat.color = Color.red;
-        sphere.AddComponent<MeshRenderer>().material = mat;
-        return sphere;
-    }
-    private void ClearGizmos()
-    {
-        if (Input.GetMouseButtonUp(0) && explodeSphere != null)
+        if (Input.GetMouseButtonUp(0))
         {
-            //for (int i = 0; i < gizmosParent.transform.childCount; ++i)
-            //{
-            //    DestroyImmediate(gizmosParent.transform.GetChild(i).gameObject);
-            //}
-            //gizmosParent.transform.DetachChildren();
-            explodeSphere.SetActive(false);
+            for(int i=0;i<gizmos.Count;++i)
+            {
+                if(gizmos[i]!=null)
+                {
+                    gizmos[i].SetActive(false);
+                }
+            }
         }
-    }
-    private void DrawGizmos()
-    {
-        if (explodeSphere == null)
-        {
-            explodeSphere = DrawSphere(detectionSphere.center, detectionSphere.radius);
-            explodeSphere.transform.parent = gizmosParent.transform;
-        }
-        else
-        {
-            explodeSphere.transform.localPosition = detectionSphere.center;
-        }
-        explodeSphere.SetActive(true);
     }
     void Update()
     {
         ClearGizmos();
         if ((catched = CatchSelectTarget()))
         {
-            detectionSphere.center = crossPoint;
-            DrawGizmos();
-            //var breakableBehaviour = crossTarget.transform.parent.GetComponent<BreakableObjBehaviour>();
-            var breakableBehaviour = crossTarget.GetComponent<BreakableObjBehaviour>();
+            //var breakableBehaviour = crossTarget.GetComponent<BreakableObjBehaviour>();
+            var breakableBehaviour = crossTarget.transform.parent.GetComponent<BreakableObjBehaviour>();
             if (breakableBehaviour != null)
             {
-                detectionSphere.Traversal(breakableBehaviour.GetBreakable());
-                //breakableBehaviour.Explode(20f, hitDirection);
+                breakableBehaviour.DrawGizmos(gizmosParent, crossPoint, gizmos);
+                breakableBehaviour.Traversal();
                 breakableBehaviour.Explode();
             }
         }

@@ -3,28 +3,26 @@ using System.Collections.Generic;
 using UnityEngine;
 namespace chenyi
 {
-    public interface IVistor
-    {
-        void Traversal(IBreakable target);
-    }
-    public interface IConvertable
-    {
-        Matrix4x4 World2Object { get; }
-        Matrix4x4 Object2World { get; }
-    }
     public interface IBreakable: IConvertable
     {
         Transform transform { get; }
-        void GetNew(ref Mesh mesh);
-        void CreateNew();
-        List<ModelInfo> ModelInfos { get; set; }
+        void GetMesh(ref Mesh mesh);
+        void CreateMesh();
+        List<ModelData> ModelInfos { get; set; }
     }
-    public class ModelInfo
+    public class ModelData
     {
         public List<Vector3> vertices;
         public List<int> triangles;
         public List<Vector3> normals;
         public List<Vector2> uvs;
+        public void Init()
+        {
+            vertices = new List<Vector3>();
+            triangles = new List<int>();
+            uvs = new List<Vector2>();
+            normals = new List<Vector3>();
+        }
     }
     /// <summary>
     /// 可被击碎的网格物体，增加辅助数据结构，加快算法
@@ -35,7 +33,7 @@ namespace chenyi
         private Mesh newMesh;
         public Transform transform { get; private set; }
 
-        public List<ModelInfo> ModelInfos { get; set; }
+        public List<ModelData> ModelInfos { get; set; }
         public Matrix4x4 World2Object { get; private set; }
         public Matrix4x4 Object2World { get; private set; }
 
@@ -45,19 +43,19 @@ namespace chenyi
             this.transform = transform;
             World2Object = transform.worldToLocalMatrix;
             Object2World = transform.localToWorldMatrix;
-            ModelInfos = new List<ModelInfo>();
+            ModelInfos = new List<ModelData>();
             Init();
         }
         protected virtual void Init()
         {
-            ModelInfo info = new ModelInfo();
+            ModelData info = new ModelData();
             info.triangles = new List<int>(oldMesh.triangles);
             info.vertices = new List<Vector3>(oldMesh.vertices);
             info.normals = new List<Vector3>(oldMesh.normals);
             info.uvs = new List<Vector2>(oldMesh.uv);
             ModelInfos.Add(info);
         }
-        public void CreateNew()
+        public void CreateMesh()
         {
             newMesh = new Mesh();
             List<Vector3> normals = new List<Vector3>();
@@ -80,11 +78,11 @@ namespace chenyi
             newMesh.triangles = triangles.ToArray();
             //newMesh.uv = uvs.ToArray();
         }
-        public void GetNew(ref Mesh mesh)
+        public void GetMesh(ref Mesh mesh)
         {
             if (newMesh == null)
             {
-                CreateNew();
+                CreateMesh();
             }
             mesh = newMesh;
         }
