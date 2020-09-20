@@ -45,7 +45,7 @@ public class BrokenManager : MonoBehaviour
         if ((catched = CatchSelectTarget()))
         {
             //var breakableBehaviour = crossTarget.GetComponent<BreakableObjBehaviour>();
-            var breakableBehaviour = crossTarget.transform.parent.GetComponent<BreakableObjBehaviour>();
+            var breakableBehaviour = crossTarget.GetComponent<BreakableObjBehaviour>();
             if (breakableBehaviour != null)
             {
                 breakableBehaviour.DrawGizmos(gizmosParent, crossPoint, gizmos);

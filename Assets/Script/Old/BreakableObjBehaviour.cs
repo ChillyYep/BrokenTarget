@@ -16,17 +16,18 @@ namespace chenyi
     {
         public CutType cutType = CutType.PartCut;
 
+        public Transform parent;
         private IBreakable breakable;
         private CutTriangleStrategy strategy;
         private IDrawableGizmos drawableGizmos;
         GameObject gizmosSphere;
-        MeshFilter childMeshFilter;
+        MeshFilter meshFilter;
         private void Awake()
         {
-            childMeshFilter = transform.GetComponentInChildren<MeshFilter>();
-            if (childMeshFilter)
+            meshFilter = transform.GetComponent<MeshFilter>();
+            if (meshFilter)
             {
-                breakable = new BreakableObj(childMeshFilter.mesh, transform);
+                breakable = new BreakableObj(meshFilter.mesh, transform);
             }
             else
             {
@@ -71,13 +72,13 @@ namespace chenyi
         }
         public void Explode()
         {
-            if (childMeshFilter == null)
+            if (meshFilter == null)
             {
                 return;
             }
             Mesh mesh = new Mesh();
             breakable.GetMesh(ref mesh);
-            childMeshFilter.mesh = mesh;
+            meshFilter.mesh = mesh;
             List<Mesh> peciesMesh = new List<Mesh>();
             foreach (var item in strategy.pecies)
             {
@@ -95,14 +96,15 @@ namespace chenyi
                 GameObject obj = new GameObject();
                 obj.AddComponent<MeshFilter>().mesh = peciesMesh[i];
                 obj.AddComponent<MeshRenderer>().material = new Material(Shader.Find("Standard"));
+                obj.name = string.Format("Pieces {0}", i);
                 //obj.AddComponent<Rigidbody>();
                 //obj.AddComponent<BoxCollider>();
-                obj.transform.parent = transform;
+                obj.transform.parent = parent;
                 peciesObj.Add(obj);
             }
-            if(cutType==CutType.TotalCut)
+            if (cutType == CutType.TotalCut)
             {
-                Destroy(childMeshFilter.gameObject);
+                Destroy(gameObject);
             }
         }
         public GameObject DrawGizmos(Transform gizmosParent, Vector3 center, List<GameObject> gizmos)

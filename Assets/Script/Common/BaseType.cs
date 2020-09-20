@@ -171,6 +171,30 @@ namespace chenyi
             pointC.vertex = point3;
         }
         /// <summary>
+        /// 切割后的面数是3的倍数
+        /// </summary>
+        /// <param name="areaUnit"></param>
+        /// <returns></returns>
+        public List<TriangleFace> SplitByArea(float areaUnit)
+        {
+            List<TriangleFace> triangleList = new List<TriangleFace>();
+            Vector3 ab = pointA.vertex - pointB.vertex;
+            Vector3 bc = pointC.vertex - pointB.vertex;
+            Vector3 ac = pointC.vertex - pointA.vertex;
+            float height = Mathf.Sqrt(Vector3.Dot(ab, ab) - Mathf.Pow(Vector3.Dot(ab, ac.normalized), 2f));
+            float triangleArea = height * ab.magnitude / 2f;
+            if (triangleArea >= 3 * areaUnit)
+            {
+                int count = (int)(triangleArea / areaUnit);
+                //int newVertexCount=count/3
+            }
+            else
+            {
+                triangleList.Add(this);
+            }
+            return triangleList;
+        }
+        /// <summary>
         /// 线段与三角面的交点,必须在三角形内
         /// </summary>
         /// <param name="line"></param>
@@ -253,7 +277,7 @@ namespace chenyi
             float distance = Vector3.Dot(vertex - pointA.vertex, normal);
             return vertex - normal * distance;
         }
-        
+
         /// <summary>
         /// 包含了在边上的顶点
         /// </summary>

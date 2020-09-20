@@ -463,6 +463,7 @@ GameObject:
   - component: {fileID: 1951541055}
   - component: {fileID: 1951541054}
   - component: {fileID: 1951541053}
+  - component: {fileID: 1951541052}
   m_Layer: 0
   m_Name: Cube
   m_TagString: Untagged
@@ -470,6 +471,20 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
+--- !u!114 &1951541052
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1951541051}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fb4440c3e8d2a8d46ac87435f2aba5d7, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  cutType: 1
+  parent: {fileID: 2030548085}
 --- !u!65 &1951541053
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -597,7 +612,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 2030548085}
-  - component: {fileID: 2030548084}
   m_Layer: 0
   m_Name: BreakableRoot
   m_TagString: Untagged
@@ -605,19 +619,6 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &2030548084
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2030548083}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: fb4440c3e8d2a8d46ac87435f2aba5d7, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cutType: 1
 --- !u!4 &2030548085
 Transform:
   m_ObjectHideFlags: 0

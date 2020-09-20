@@ -40,7 +40,7 @@ public class PartCutTriangleStrategy : CutTriangleStrategy, IConvertable
             vertexs.Add(new Vector3(Mathf.Cos(angle * Mathf.Deg2Rad), 0f, Mathf.Sin(angle * Mathf.Deg2Rad)));
         }
     }
-    public ModelData GenModelData(ref TriangleFace triangleFace, float depth)
+    public ModelData GenModelData(ref TriangleFace triangleFace)
     {
         return new ModelData();
     }

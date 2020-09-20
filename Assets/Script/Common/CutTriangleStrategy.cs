@@ -7,6 +7,6 @@ public interface CutTriangleStrategy
 {
     IBreakable breakable { get; }
     List<ModelData> pecies { get; }
-    ModelData GenModelData(ref TriangleFace triangleFace, float depth);
+    ModelData GenModelData(ref TriangleFace triangleFace);
     void Traversal();
 }
