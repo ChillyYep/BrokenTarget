@@ -135,7 +135,7 @@ namespace chenyi
         public VertexData pointA;
         public VertexData pointB;
         public VertexData pointC;
-        public bool needInterlopte { get; set; }
+        private bool enableInterlopte;
         public TriangleFace(VertexData point1, VertexData point2, VertexData point3)
         {
             normal = Vector3.Cross(point1.vertex - point2.vertex, point1.vertex - point3.vertex);
@@ -143,7 +143,7 @@ namespace chenyi
             pointA = point1;
             pointB = point2;
             pointC = point3;
-            needInterlopte = true;
+            enableInterlopte = true;
         }
         public TriangleFace(Vector3 point1, Vector3 point2, Vector3 point3)
         {
@@ -152,7 +152,7 @@ namespace chenyi
             pointA = new VertexData() { vertex = point1 };
             pointB = new VertexData() { vertex = point2 };
             pointC = new VertexData() { vertex = point3 };
-            needInterlopte = false;
+            enableInterlopte = false;
         }
         public void ReCompute(VertexData point1, VertexData point2, VertexData point3)
         {
@@ -161,6 +161,7 @@ namespace chenyi
             pointA = point1;
             pointB = point2;
             pointC = point3;
+            enableInterlopte = true;
         }
         public void ReCompute(Vector3 point1, Vector3 point2, Vector3 point3)
         {
@@ -169,30 +170,11 @@ namespace chenyi
             pointA.vertex = point1;
             pointB.vertex = point2;
             pointC.vertex = point3;
+            enableInterlopte = false;
         }
-        /// <summary>
-        /// 切割后的面数是3的倍数
-        /// </summary>
-        /// <param name="areaUnit"></param>
-        /// <returns></returns>
-        public List<TriangleFace> SplitByArea(float areaUnit)
+        public void ComputeBarycentric(out Vector3 barycentric)
         {
-            List<TriangleFace> triangleList = new List<TriangleFace>();
-            Vector3 ab = pointA.vertex - pointB.vertex;
-            Vector3 bc = pointC.vertex - pointB.vertex;
-            Vector3 ac = pointC.vertex - pointA.vertex;
-            float height = Mathf.Sqrt(Vector3.Dot(ab, ab) - Mathf.Pow(Vector3.Dot(ab, ac.normalized), 2f));
-            float triangleArea = height * ab.magnitude / 2f;
-            if (triangleArea >= 3 * areaUnit)
-            {
-                int count = (int)(triangleArea / areaUnit);
-                //int newVertexCount=count/3
-            }
-            else
-            {
-                triangleList.Add(this);
-            }
-            return triangleList;
+            barycentric = (pointA.vertex + pointB.vertex + pointC.vertex) / 3f;
         }
         /// <summary>
         /// 线段与三角面的交点,必须在三角形内
@@ -223,11 +205,11 @@ namespace chenyi
             }
             return true;
         }
-        public VertexData Interlopation(Vector3 vertex)
+        public VertexData Interlopation(Vector3 vertex, bool normalInterlopte = true, bool uvInterlopte = false)
         {
             VertexData triangleData = new VertexData() { vertex = vertex };
             //可以利用点与三边的距离来计算中心坐标
-            if (needInterlopte)
+            if (enableInterlopte)
             {
                 Vector3 ab = pointB.vertex - pointA.vertex;
                 ab.Normalize();
@@ -247,8 +229,14 @@ namespace chenyi
                     w1 = w1 / W;
                     w2 = w2 / W;
                     w3 = 1f - w1 - w2;
-                    triangleData.normal = w1 * pointC.normal + w2 * pointB.normal + w3 * pointA.normal;
-                    triangleData.uv = w1 * pointC.uv + w2 * pointB.uv + w3 * pointA.uv;
+                    if (normalInterlopte)
+                    {
+                        triangleData.normal = w1 * pointC.normal + w2 * pointB.normal + w3 * pointA.normal;
+                    }
+                    if (uvInterlopte)
+                    {
+                        triangleData.uv = w1 * pointC.uv + w2 * pointB.uv + w3 * pointA.uv;
+                    }
                 }
             }
             return triangleData;

@@ -30,9 +30,9 @@ public class BrokenManager : MonoBehaviour
     {
         if (Input.GetMouseButtonUp(0))
         {
-            for(int i=0;i<gizmos.Count;++i)
+            for (int i = 0; i < gizmos.Count; ++i)
             {
-                if(gizmos[i]!=null)
+                if (gizmos[i] != null)
                 {
                     gizmos[i].SetActive(false);
                 }
@@ -44,13 +44,12 @@ public class BrokenManager : MonoBehaviour
         ClearGizmos();
         if ((catched = CatchSelectTarget()))
         {
-            //var breakableBehaviour = crossTarget.GetComponent<BreakableObjBehaviour>();
             var breakableBehaviour = crossTarget.GetComponent<BreakableObjBehaviour>();
             if (breakableBehaviour != null)
             {
                 breakableBehaviour.DrawGizmos(gizmosParent, crossPoint, gizmos);
                 breakableBehaviour.Traversal();
-                breakableBehaviour.Explode();
+                breakableBehaviour.Explode(hitDirection);
             }
         }
     }

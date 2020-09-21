@@ -3,6 +3,9 @@ using System.Collections.Generic;
 using UnityEngine;
 namespace chenyi
 {
+    /// <summary>
+    /// 可破碎对象
+    /// </summary>
     public interface IBreakable: IConvertable
     {
         Transform transform { get; }
@@ -85,17 +88,6 @@ namespace chenyi
                 CreateMesh();
             }
             mesh = newMesh;
-        }
-        public void ComputeInterpolation(int triangleBeginIndex, Vector3 curPos)
-        {
-            Vector3 p1 = newMesh.vertices[newMesh.triangles[triangleBeginIndex]];
-            Vector3 p2 = newMesh.vertices[newMesh.triangles[triangleBeginIndex + 1]];
-            Vector3 p3 = newMesh.vertices[newMesh.triangles[triangleBeginIndex + 2]];
-            float p2Factor = Vector3.Dot((p2 - p1).normalized, curPos - p1);
-            for (int i = 0; i < 3; ++i)
-            {
-
-            }
         }
     }
 }

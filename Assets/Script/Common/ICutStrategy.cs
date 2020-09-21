@@ -2,11 +2,12 @@
 using System.Collections.Generic;
 using UnityEngine;
 using chenyi;
-
-public interface CutTriangleStrategy
+/// <summary>
+/// 切割策略
+/// </summary>
+public interface ICutStrategy
 {
     IBreakable breakable { get; }
     List<ModelData> pecies { get; }
-    ModelData GenModelData(ref TriangleFace triangleFace);
     void Traversal();
 }

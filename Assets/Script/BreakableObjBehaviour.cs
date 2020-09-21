@@ -3,22 +3,28 @@ using System.Collections.Generic;
 using UnityEngine;
 namespace chenyi
 {
-    public enum CutType
-    {
-        PartCut,
-        TotalCut
-    }
+    //public enum CutType
+    //{
+    //    PartCut,
+    //    TotalCut
+    //}
     /// <summary>
     /// 持有可破碎物体的数据
     /// </summary>
-    //[RequireComponent(typeof(MeshFilter))]
+    [RequireComponent(typeof(MeshFilter))]
     public class BreakableObjBehaviour : MonoBehaviour
     {
-        public CutType cutType = CutType.PartCut;
+        //public CutType cutType = CutType.PartCut;
 
         public Transform parent;
+        public float minHeight;
+        public float pieceDepth = 0.5f;
+        public float areaUnit = 0.25f;
+        [Range(0f, 1f)]
+        public float hitStength = 0.5f;
+        public float force = 10f;
         private IBreakable breakable;
-        private CutTriangleStrategy strategy;
+        private ICutStrategy strategy;
         private IDrawableGizmos drawableGizmos;
         GameObject gizmosSphere;
         MeshFilter meshFilter;
@@ -28,27 +34,28 @@ namespace chenyi
             if (meshFilter)
             {
                 breakable = new BreakableObj(meshFilter.mesh, transform);
+                strategy = new WholeCutStrategy(breakable, new GenSmallerPieces(new GenPyramidPieces(pieceDepth), areaUnit, transform.position));
             }
             else
             {
                 return;
             }
-            SwitchCutType();
+            //SwitchCutType();
         }
-        private void SwitchCutType()
-        {
-            switch (cutType)
-            {
-                case CutType.PartCut:
-                    DetectionSphere detectionSphere = new DetectionSphere(Vector3.one, 0.3f, SegmentVerticalType.Nine, SegmentCircleType.Eight);
-                    strategy = new PartCutTriangleStrategy(breakable, detectionSphere);
-                    drawableGizmos = detectionSphere;
-                    break;
-                case CutType.TotalCut:
-                    strategy = new TotalCutTriangleStrategy(breakable);
-                    break;
-            }
-        }
+        //private void SwitchCutType()
+        //{
+        //    switch (cutType)
+        //    {
+        //        case CutType.PartCut:
+        //            DetectionSphere detectionSphere = new DetectionSphere(Vector3.one, 0.3f, SegmentVerticalType.Nine, SegmentCircleType.Eight);
+        //            strategy = new PartCutTriangleStrategy(breakable, detectionSphere);
+        //            drawableGizmos = detectionSphere;
+        //            break;
+        //        case CutType.TotalCut:
+        //            strategy = new WholeCutStrategy(breakable, new GenSmallerPieces(new GenPyramidPieces(pieceDepth), areaUnit, transform.position));
+        //            break;
+        //    }
+        //}
         private GameObject DrawSphere(Vector3 center)
         {
             GameObject sphere = new GameObject();
@@ -70,7 +77,7 @@ namespace chenyi
         {
             strategy.Traversal();
         }
-        public void Explode()
+        public void Explode(Vector3 hitDirection)
         {
             if (meshFilter == null)
             {
@@ -87,7 +94,7 @@ namespace chenyi
                     vertices = item.vertices.ToArray(),
                     triangles = item.triangles.ToArray(),
                     normals = item.normals.ToArray(),
-                    //uv = item.uvs.ToArray()
+                    uv = item.uvs.ToArray()
                 });
             }
             List<GameObject> peciesObj = new List<GameObject>();
@@ -97,22 +104,29 @@ namespace chenyi
                 obj.AddComponent<MeshFilter>().mesh = peciesMesh[i];
                 obj.AddComponent<MeshRenderer>().material = new Material(Shader.Find("Standard"));
                 obj.name = string.Format("Pieces {0}", i);
-                //obj.AddComponent<Rigidbody>();
-                //obj.AddComponent<BoxCollider>();
+                var rgBody = obj.AddComponent<Rigidbody>();
                 obj.transform.parent = parent;
+                obj.transform.position = transform.position;
+                Vector3 offset = peciesMesh[i].bounds.center - meshFilter.mesh.bounds.center;
+                offset.Normalize();
+                hitDirection.Normalize();
+                rgBody.AddForce((hitDirection * hitStength + offset * (1 - hitStength)).normalized * force, ForceMode.Impulse);
+                var collider = obj.AddComponent<MeshCollider>();
+                collider.convex = true;
+                collider.sharedMesh = peciesMesh[i];
                 peciesObj.Add(obj);
             }
-            if (cutType == CutType.TotalCut)
-            {
-                Destroy(gameObject);
-            }
+            //if (cutType == CutType.TotalCut)
+            //{
+            //    Destroy(gameObject);
+            //}
         }
         public GameObject DrawGizmos(Transform gizmosParent, Vector3 center, List<GameObject> gizmos)
         {
-            if (cutType != CutType.PartCut)
-            {
-                return null;
-            }
+            //if (cutType != CutType.PartCut)
+            //{
+            //    return null;
+            //}
             if (gizmosSphere == null)
             {
                 gizmosSphere = DrawSphere(center);

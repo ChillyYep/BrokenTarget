@@ -10,7 +10,7 @@ public enum IncludeVetextType
     Three
 }
 
-public class PartCutTriangleStrategy : CutTriangleStrategy, IConvertable
+public class PartCutTriangleStrategy : ICutStrategy, IConvertable
 {
     public SegmentCircleType segmentCircleType { get; private set; }
     public Matrix4x4 World2Object { get; private set; }
