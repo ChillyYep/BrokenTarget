@@ -8,6 +8,7 @@ using chenyi;
 public interface ICutStrategy
 {
     IBreakable breakable { get; }
+    IGenPieces genPieces { get; }
     List<ModelData> pecies { get; }
     void Traversal();
 }

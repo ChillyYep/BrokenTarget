@@ -9,7 +9,6 @@ namespace chenyi
     public interface IBreakable: IConvertable
     {
         Transform transform { get; }
-        void GetMesh(ref Mesh mesh);
         void CreateMesh();
         List<ModelData> ModelInfos { get; set; }
     }
@@ -80,14 +79,6 @@ namespace chenyi
             //newMesh.normals = normals.ToArray();
             newMesh.triangles = triangles.ToArray();
             //newMesh.uv = uvs.ToArray();
-        }
-        public void GetMesh(ref Mesh mesh)
-        {
-            if (newMesh == null)
-            {
-                CreateMesh();
-            }
-            mesh = newMesh;
         }
     }
 }

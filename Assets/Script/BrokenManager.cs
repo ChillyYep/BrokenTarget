@@ -5,13 +5,22 @@ using chenyi;
 
 public class BrokenManager : MonoBehaviour
 {
-    Vector3 crossPoint;
-    Vector3 crossNormal;
-    Vector3 hitDirection;
+    public Vector3 crossPoint { get; private set; }
+    public Vector3 crossNormal { get; private set; }
+    public Vector3 hitDirection { get; private set; }
     GameObject crossTarget;
     public Transform gizmosParent;
     private List<GameObject> gizmos = new List<GameObject>();
     private bool catched = false;
+    public static BrokenManager Instance { get; private set; }
+    private void Awake()
+    {
+        if(Instance == null)
+        {
+            Instance = this;
+        }
+        DontDestroyOnLoad(this);
+    }
     private bool CatchSelectTarget()
     {
         RaycastHit raycastHit;
@@ -47,9 +56,8 @@ public class BrokenManager : MonoBehaviour
             var breakableBehaviour = crossTarget.GetComponent<BreakableObjBehaviour>();
             if (breakableBehaviour != null)
             {
-                breakableBehaviour.DrawGizmos(gizmosParent, crossPoint, gizmos);
                 breakableBehaviour.Traversal();
-                breakableBehaviour.Explode(hitDirection);
+                breakableBehaviour.Explode();
             }
         }
     }

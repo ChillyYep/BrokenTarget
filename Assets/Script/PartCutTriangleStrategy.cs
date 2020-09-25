@@ -13,6 +13,7 @@ public enum IncludeVetextType
 public class PartCutTriangleStrategy : ICutStrategy, IConvertable
 {
     public SegmentCircleType segmentCircleType { get; private set; }
+    public IGenPieces genPieces { get; private set; }
     public Matrix4x4 World2Object { get; private set; }
     public Matrix4x4 Object2World { get; private set; }
     private List<Vector3> vertexs = new List<Vector3>();

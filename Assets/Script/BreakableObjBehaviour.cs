@@ -3,71 +3,94 @@ using System.Collections.Generic;
 using UnityEngine;
 namespace chenyi
 {
-    //public enum CutType
-    //{
-    //    PartCut,
-    //    TotalCut
-    //}
     /// <summary>
     /// 持有可破碎物体的数据
     /// </summary>
     [RequireComponent(typeof(MeshFilter))]
+    [RequireComponent(typeof(MeshRenderer))]
     public class BreakableObjBehaviour : MonoBehaviour
     {
-        //public CutType cutType = CutType.PartCut;
-
         public Transform parent;
-        public float minHeight;
         public float pieceDepth = 0.5f;
         public float areaUnit = 0.25f;
         [Range(0f, 1f)]
         public float hitStength = 0.5f;
+        [Tooltip("飞行轨迹向击打方向集中的程度")]
+        [Range(0f, 20f)]
+        public float focusLevel = 0f;
         public float force = 10f;
+        public float mass = 1f;
+
+        [HideInInspector]
+        public bool areaEffectByDistance = true;
+        [HideInInspector]
+        public float distance = 0.5f;
+        [HideInInspector]
+        public float forceEffectRangeUnit = 1f;
+        [HideInInspector]
+        public bool forceEffectedByDistance = true;
+        [HideInInspector]
+        public Vector2 boxInnerStartUV = Vector2.zero;
+        [HideInInspector]
+        public Vector2 boxInnerEndUV = Vector2.one;
+
+        public Vector3 crossPointLocal
+        {
+            get
+            {
+                if (!crossPointAssigned)
+                {
+                    //转到物体空间
+                    _crossPointLocal = transform.worldToLocalMatrix.MultiplyPoint(BrokenManager.Instance.crossPoint);
+                    //排除scale影响
+                    Vector3 scale = transform.localScale;
+                    scale.x = scale.x == 0f ? 0f : 1f / scale.x;
+                    scale.y = scale.y == 0f ? 0f : 1f / scale.y;
+                    scale.z = scale.z == 0f ? 0f : 1f / scale.z;
+                    _crossPointLocal.Scale(scale);
+                    crossPointAssigned = true;
+                }
+                return _crossPointLocal;
+            }
+        }
+        public Vector3 hitDirection
+        {
+            get
+            {
+                return BrokenManager.Instance.hitDirection;
+            }
+        }
+
+        private bool crossPointAssigned = false;
+        private Vector3 _crossPointLocal;
         private IBreakable breakable;
         private ICutStrategy strategy;
-        private IDrawableGizmos drawableGizmos;
-        GameObject gizmosSphere;
-        MeshFilter meshFilter;
-        private void Awake()
+        private MeshFilter meshFilter;
+        private MeshRenderer meshRender;
+        private List<GameObject> peciesObj = new List<GameObject>();
+#if UNITY_EDITOR
+        [Tooltip("仅在编辑器模式下生效")]
+        [SerializeField]
+        private bool trailRenderOn = true;
+#endif
+        private void Start()
         {
             meshFilter = transform.GetComponent<MeshFilter>();
+            meshRender = transform.GetComponent<MeshRenderer>();
+            if (parent == null)
+            {
+                parent = transform.parent;
+            }
             if (meshFilter)
             {
+
                 breakable = new BreakableObj(meshFilter.mesh, transform);
-                strategy = new WholeCutStrategy(breakable, new GenSmallerPieces(new GenPyramidPieces(pieceDepth), areaUnit, transform.position));
+                strategy = new WholeCutStrategy(breakable, new GenSmallerPieces(new GenPyramidPieces(pieceDepth, boxInnerStartUV, boxInnerEndUV), areaUnit));
             }
             else
             {
                 return;
             }
-            //SwitchCutType();
-        }
-        //private void SwitchCutType()
-        //{
-        //    switch (cutType)
-        //    {
-        //        case CutType.PartCut:
-        //            DetectionSphere detectionSphere = new DetectionSphere(Vector3.one, 0.3f, SegmentVerticalType.Nine, SegmentCircleType.Eight);
-        //            strategy = new PartCutTriangleStrategy(breakable, detectionSphere);
-        //            drawableGizmos = detectionSphere;
-        //            break;
-        //        case CutType.TotalCut:
-        //            strategy = new WholeCutStrategy(breakable, new GenSmallerPieces(new GenPyramidPieces(pieceDepth), areaUnit, transform.position));
-        //            break;
-        //    }
-        //}
-        private GameObject DrawSphere(Vector3 center)
-        {
-            GameObject sphere = new GameObject();
-            var meshfilter = sphere.AddComponent<MeshFilter>();
-            sphere.transform.position = center;
-            drawableGizmos.transform = sphere.transform;
-            drawableGizmos.DrawMesh();
-            meshfilter.mesh = drawableGizmos.SphereMesh;
-            Material mat = new Material(Shader.Find("Standard"));
-            mat.color = Color.red;
-            sphere.AddComponent<MeshRenderer>().material = mat;
-            return sphere;
         }
         public IBreakable GetBreakable()
         {
@@ -75,18 +98,33 @@ namespace chenyi
         }
         public void Traversal()
         {
+            switch (strategy.genPieces.GetEnumType())
+            {
+                case GenPiecesType.GenSmallerPieces:
+                    var genPieces = strategy.genPieces as GenSmallerPieces;
+                    if (areaEffectByDistance)
+                    {
+                        if (genPieces != null)
+                        {
+                            genPieces.SetCrossPoint(crossPointLocal, true, distance);
+                        }
+                    }
+                    break;
+            }
             strategy.Traversal();
         }
-        public void Explode(Vector3 hitDirection)
+        public void Explode()
         {
             if (meshFilter == null)
             {
                 return;
             }
-            Mesh mesh = new Mesh();
-            breakable.GetMesh(ref mesh);
-            meshFilter.mesh = mesh;
+            Matrix4x4 local2World = transform.localToWorldMatrix;
+            Vector3 hitDirectionLocal = transform.worldToLocalMatrix.MultiplyVector(hitDirection);
+            hitDirectionLocal.Normalize();
+            hitDirection.Normalize();
             List<Mesh> peciesMesh = new List<Mesh>();
+            peciesObj.Clear();
             foreach (var item in strategy.pecies)
             {
                 peciesMesh.Add(new Mesh()
@@ -97,49 +135,51 @@ namespace chenyi
                     uv = item.uvs.ToArray()
                 });
             }
-            List<GameObject> peciesObj = new List<GameObject>();
             for (int i = 0; i < peciesMesh.Count; ++i)
             {
                 GameObject obj = new GameObject();
                 obj.AddComponent<MeshFilter>().mesh = peciesMesh[i];
-                obj.AddComponent<MeshRenderer>().material = new Material(Shader.Find("Standard"));
-                obj.name = string.Format("Pieces {0}", i);
-                var rgBody = obj.AddComponent<Rigidbody>();
+                var meshRenderer = obj.AddComponent<MeshRenderer>();
+                meshRenderer.material = new Material(meshRender.material);
+                obj.name = string.Format("{0} Pieces {1}", gameObject.name, i);
                 obj.transform.parent = parent;
                 obj.transform.position = transform.position;
+                obj.transform.localScale = transform.localScale;
+                obj.transform.localRotation = transform.localRotation;
+#if UNITY_EDITOR
+                if (trailRenderOn)
+                {
+                    var trailRender = obj.AddComponent<TrailRenderer>();
+                    trailRender.startWidth = 0.1f;
+                    trailRender.endWidth = 0.1f;
+                    trailRender.material = new Material(Shader.Find("Standard"));
+                    trailRender.material.color = Color.black;
+                }
+#endif
+                //物体空间下的计算
                 Vector3 offset = peciesMesh[i].bounds.center - meshFilter.mesh.bounds.center;
                 offset.Normalize();
-                hitDirection.Normalize();
-                rgBody.AddForce((hitDirection * hitStength + offset * (1 - hitStength)).normalized * force, ForceMode.Impulse);
+                Vector3 baseDir = hitDirectionLocal * hitStength + offset * (1 - hitStength);
+                //转到世界空间下的计算
+                baseDir = local2World.MultiplyVector(baseDir);
+                var rgBody = obj.AddComponent<Rigidbody>();
+                rgBody.mass = mass;
+                if (forceEffectedByDistance)
+                {
+                    float distance = (peciesMesh[i].bounds.center - crossPointLocal).magnitude;
+                    distance = distance > forceEffectRangeUnit ? forceEffectRangeUnit / distance : 1f;
+                    rgBody.AddForce((baseDir + Vector3.Dot(baseDir, hitDirection) * hitDirection * focusLevel).normalized * force * distance, ForceMode.Impulse);
+                }
+                else
+                {
+                    rgBody.AddForce((baseDir + Vector3.Dot(baseDir, hitDirection) * hitDirection * focusLevel).normalized * force, ForceMode.Impulse);
+                }
                 var collider = obj.AddComponent<MeshCollider>();
                 collider.convex = true;
                 collider.sharedMesh = peciesMesh[i];
                 peciesObj.Add(obj);
             }
-            //if (cutType == CutType.TotalCut)
-            //{
-            //    Destroy(gameObject);
-            //}
-        }
-        public GameObject DrawGizmos(Transform gizmosParent, Vector3 center, List<GameObject> gizmos)
-        {
-            //if (cutType != CutType.PartCut)
-            //{
-            //    return null;
-            //}
-            if (gizmosSphere == null)
-            {
-                gizmosSphere = DrawSphere(center);
-                gizmosSphere.transform.parent = gizmosParent.transform;
-                gizmos.Add(gizmosSphere);
-            }
-            else
-            {
-                gizmosSphere.transform.position = center;
-                drawableGizmos.transform = gizmosSphere.transform;
-            }
-            gizmosSphere.SetActive(true);
-            return gizmosSphere;
+            Destroy(gameObject);
         }
     }
 }

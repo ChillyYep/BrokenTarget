@@ -212,32 +212,80 @@ namespace chenyi
             if (enableInterlopte)
             {
                 Vector3 ab = pointB.vertex - pointA.vertex;
-                ab.Normalize();
                 Vector3 ac = pointC.vertex - pointA.vertex;
-                ac.Normalize();
                 Vector3 bc = pointC.vertex - pointB.vertex;
-                bc.Normalize();
                 Vector3 a2v = vertex - pointA.vertex;
                 Vector3 b2v = vertex - pointB.vertex;
                 Vector3 c2v = vertex - pointC.vertex;
-                if (IsInTriangle(a2v, b2v, c2v, ab, bc, -ac))
+                //if (IsInTriangle(a2v, b2v, c2v, ab, bc, -ac))
                 {
-                    float w1 = (Vector3.Dot(a2v, ab) * ab - a2v).magnitude;
-                    float w2 = (Vector3.Dot(a2v, ac) * ac - a2v).magnitude;
-                    float w3 = (Vector3.Dot(a2v, bc) * bc - a2v).magnitude;
-                    float W = w1 + w2 + w3;
+                    float w1 = (Vector3.Dot(a2v, ab.normalized) * ab.normalized - a2v).magnitude * ab.magnitude;
+                    float w2 = (Vector3.Dot(a2v, ac.normalized) * ac.normalized - a2v).magnitude * ac.magnitude;
+                    float w3 = (Vector3.Dot(b2v, bc.normalized) * bc.normalized - b2v).magnitude * bc.magnitude;
+                    float W = (Vector3.Dot(ab, ac.normalized) * ac.normalized - ab).magnitude * ac.magnitude;
                     w1 = w1 / W;
                     w2 = w2 / W;
-                    w3 = 1f - w1 - w2;
+                    w3 = w3 / W;
                     if (normalInterlopte)
                     {
                         triangleData.normal = w1 * pointC.normal + w2 * pointB.normal + w3 * pointA.normal;
+                        triangleData.normal.Normalize();
                     }
                     if (uvInterlopte)
                     {
                         triangleData.uv = w1 * pointC.uv + w2 * pointB.uv + w3 * pointA.uv;
                     }
                 }
+                //else
+                //{
+                //    float n;
+                //    float m;
+                //    if (!Mathf.Approximately(ab.y * ac.x - ab.x * ac.y, 0f))
+                //    {
+                //        n = (a2v.x * ab.y - ab.x * a2v.y) / (ab.y * ac.x - ab.x * ac.y);
+                //    }
+                //    else if (!Mathf.Approximately(ab.z * ac.x - ab.x * ac.z, 0f))
+                //    {
+                //        n = (a2v.x * ab.z - ab.x * a2v.z) / (ab.z * ac.x - ab.x * ac.z);
+                //    }
+                //    else if (!Mathf.Approximately(ab.y * ac.z - ab.z * ac.y, 0f))
+                //    {
+                //        n = (a2v.z * ab.y - ab.z * a2v.y) / (ab.y * ac.z - ab.z * ac.y);
+                //    }
+                //    else if (!Mathf.Approximately(ab.x * ac.z - ab.z * ac.x, 0f))
+                //    {
+                //        n = (a2v.z * ab.x - ab.z * a2v.x) / (ab.x * ac.z - ab.z * ac.x);
+                //    }
+                //    else if (!Mathf.Approximately(ab.x * ac.y - ab.y * ac.x, 0f))
+                //    {
+                //        n = (a2v.y * ab.x - ab.y * a2v.x) / (ab.x * ac.y - ab.y * ac.x);
+                //    }
+                //    else
+                //    {
+                //        n = (a2v.y * ab.z - ab.y * a2v.z) / (ab.z * ac.y - ab.y * ac.z);
+                //    }
+                //    if (!Mathf.Approximately(ab.x, 0f))
+                //    {
+                //        m = (a2v.x - n * ac.x) / ab.x;
+                //    }
+                //    else if (Mathf.Approximately(ab.x, 0f))
+                //    {
+                //        m = (a2v.y - n * ac.y) / ab.y;
+                //    }
+                //    else
+                //    {
+                //        m = (a2v.z - n * ac.z) / ab.z;
+                //    }
+                //    if (normalInterlopte)
+                //    {
+                //        triangleData.normal = m * pointC.normal + n * pointB.normal + (1 - m - n) * pointA.normal;
+                //    }
+                //    if (uvInterlopte)
+                //    {
+                //        Vector2 uvDelta = m * (pointB.uv - pointA.uv) + n * (pointC.uv - pointA.uv);
+                //        triangleData.uv = uvDelta + pointA.uv;
+                //    }
+                //}
             }
             return triangleData;
         }

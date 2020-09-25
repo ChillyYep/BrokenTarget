@@ -2,6 +2,11 @@
 using System.Collections.Generic;
 using UnityEngine;
 using chenyi;
+public enum ShapeType
+{
+    Cube,
+    Sphere
+}
 /// <summary>
 /// 生成棱台式的碎块
 /// </summary>
@@ -13,6 +18,10 @@ public class GenFrustumPieces : IGenPieces
     public GenFrustumPieces(float depth)
     {
         this.depth = depth;
+    }
+    public GenPiecesType GetEnumType()
+    {
+        return GenPiecesType.GenFrustumPieces;
     }
     public List<ModelData> GenModelData(TriangleFace triangleFace)
     {
@@ -64,9 +73,41 @@ public class GenFrustumPieces : IGenPieces
 public class GenPyramidPieces : IGenPieces
 {
     private float depth;
-    public GenPyramidPieces(float depth)
+    private Vector2 beginUV;
+    private Vector2 endUV;
+    private ShapeType shapeType;
+    public GenPyramidPieces(float depth, Vector2 beginUV, Vector2 endUV, ShapeType shapeType = ShapeType.Cube)
     {
         this.depth = depth;
+        this.shapeType = shapeType;
+        this.beginUV = beginUV;
+        this.endUV = endUV;
+    }
+    public GenPiecesType GetEnumType()
+    {
+        return GenPiecesType.GenPyramidPieces;
+    }
+    private Vector2 MapUVCube(Vector3 vertex, ref TriangleFace triangleFace)
+    {
+        Vector3 mapVertex = triangleFace.Map2ThisFace(vertex);
+        return triangleFace.Interlopation(mapVertex, false, true).uv;
+    }
+    private Vector2 MapUV(Vector3 vertex, ref TriangleFace triangleFace)
+    {
+        Vector2 sourceUV;
+        Vector2 uvDelta = endUV - beginUV;
+        switch (shapeType)
+        {
+            case ShapeType.Cube:
+                sourceUV = MapUVCube(vertex, ref triangleFace);
+                break;
+            default:
+                sourceUV = Vector2.zero;
+                break;
+        }
+        var destUv = new Vector2(sourceUV.x * uvDelta.x, sourceUV.y * uvDelta.y);
+        destUv += beginUV;
+        return destUv;
     }
     public List<ModelData> GenModelData(TriangleFace triangleFace)
     {
@@ -74,22 +115,37 @@ public class GenPyramidPieces : IGenPieces
         ModelData modelInfo = new ModelData();
         modelDatas.Add(modelInfo);
         modelInfo.Init();
-        Vector3 newPoint = ((triangleFace.pointA.vertex + triangleFace.pointB.vertex) / 2f + triangleFace.pointC.vertex) / 2f - triangleFace.normal * depth;
+        float r1 = Random.value;
+        float r2 = Random.value;
+        Vector3 newPoint = r2 * (r1 * triangleFace.pointA.vertex + (1 - r1) * triangleFace.pointB.vertex) + (1 - r2) * triangleFace.pointC.vertex - triangleFace.normal * depth;
+        Vector2 newUV = MapUV(newPoint, ref triangleFace);
+        Vector2 newUVA = MapUV(triangleFace.pointA.vertex, ref triangleFace);
+        Vector2 newUVB = MapUV(triangleFace.pointB.vertex, ref triangleFace);
+        Vector2 newUVC = MapUV(triangleFace.pointC.vertex, ref triangleFace);
         modelInfo.vertices.Add(triangleFace.pointA.vertex);
-        //modelInfo.uvs.Add(triangleFace.pointA.uv);
+        modelInfo.uvs.Add(triangleFace.pointA.uv);
         modelInfo.vertices.Add(triangleFace.pointB.vertex);
-        //modelInfo.uvs.Add(triangleFace.pointB.uv);
+        modelInfo.uvs.Add(triangleFace.pointB.uv);
         modelInfo.vertices.Add(triangleFace.pointC.vertex);
-        //modelInfo.uvs.Add(triangleFace.pointC.uv);
+        modelInfo.uvs.Add(triangleFace.pointC.uv);
         modelInfo.vertices.Add(triangleFace.pointB.vertex);
+        modelInfo.uvs.Add(newUVB);
         modelInfo.vertices.Add(triangleFace.pointA.vertex);
+        modelInfo.uvs.Add(newUVA);
         modelInfo.vertices.Add(newPoint);
+        modelInfo.uvs.Add(newUV);
         modelInfo.vertices.Add(triangleFace.pointC.vertex);
+        modelInfo.uvs.Add(newUVC);
         modelInfo.vertices.Add(triangleFace.pointB.vertex);
+        modelInfo.uvs.Add(newUVB);
         modelInfo.vertices.Add(newPoint);
+        modelInfo.uvs.Add(newUV);
         modelInfo.vertices.Add(triangleFace.pointA.vertex);
+        modelInfo.uvs.Add(newUVA);
         modelInfo.vertices.Add(triangleFace.pointC.vertex);
+        modelInfo.uvs.Add(newUVC);
         modelInfo.vertices.Add(newPoint);
+        modelInfo.uvs.Add(newUV);
         Vector3[] normals = new Vector3[]
         {
             Vector3.Cross(triangleFace.pointB.vertex - triangleFace.pointA.vertex, triangleFace.pointC.vertex - triangleFace.pointA.vertex).normalized,
@@ -118,12 +174,17 @@ public class GenSmallerPieces : IGenPieces
     private List<TriangleFace> splitTriangleFace = new List<TriangleFace>();
     private IGenPieces sonGenPieces;
     private float areaUnit;
-    private Vector3 center;
-    public GenSmallerPieces(IGenPieces sonGenPieces, float areaUnit,Vector3 center)
+    private Vector3 crossPoint;
+    private bool infectedByCrossPoint;
+    private float distance2CrossPointPer;
+    public GenSmallerPieces(IGenPieces sonGenPieces, float areaUnit)
     {
         this.sonGenPieces = sonGenPieces;
         this.areaUnit = areaUnit;
-        this.center = center;
+    }
+    public GenPiecesType GetEnumType()
+    {
+        return GenPiecesType.GenSmallerPieces;
     }
     private float ComputeArea(ref TriangleFace triangleFace)
     {
@@ -134,38 +195,38 @@ public class GenSmallerPieces : IGenPieces
     }
     private void SplitTwoPart(ref TriangleFace triangleFace, ref Stack<TriangleFace> faceStack)
     {
-        Vector3 ba = triangleFace.pointA.vertex - triangleFace.pointB.vertex;
-        Vector3 ac = triangleFace.pointC.vertex - triangleFace.pointA.vertex;
-        Vector3 cb = triangleFace.pointB.vertex - triangleFace.pointC.vertex;
+        Vector3 ab = triangleFace.pointB.vertex - triangleFace.pointA.vertex;
+        Vector3 ca = triangleFace.pointA.vertex - triangleFace.pointC.vertex;
+        Vector3 bc = triangleFace.pointC.vertex - triangleFace.pointB.vertex;
         Vector3 maxLenVec;
         VertexData startPointData;
         VertexData endPointData;
         VertexData leftPointData;
-        if (ba.magnitude > ac.magnitude)
+        if (ab.magnitude > ca.magnitude)
         {
-            maxLenVec = ba;
-            startPointData = triangleFace.pointB;
-            endPointData = triangleFace.pointA;
+            maxLenVec = ab;
+            startPointData = triangleFace.pointA;
+            endPointData = triangleFace.pointB;
             leftPointData = triangleFace.pointC;
         }
         else
         {
-            maxLenVec = ac;
-            startPointData = triangleFace.pointA;
-            endPointData = triangleFace.pointC;
+            maxLenVec = ca;
+            startPointData = triangleFace.pointC;
+            endPointData = triangleFace.pointA;
             leftPointData = triangleFace.pointB;
         }
-        if (maxLenVec.magnitude < cb.magnitude)
+        if (maxLenVec.magnitude < bc.magnitude)
         {
-            maxLenVec = cb;
+            maxLenVec = bc;
             startPointData = triangleFace.pointB;
             endPointData = triangleFace.pointC;
             leftPointData = triangleFace.pointA;
         }
         Vector3 newPoint = startPointData.vertex + maxLenVec * 0.5f;
         VertexData newPointData = triangleFace.Interlopation(newPoint, true, true);
-        faceStack.Push(new TriangleFace(leftPointData, endPointData, newPointData));
-        faceStack.Push(new TriangleFace(leftPointData, newPointData, startPointData));
+        faceStack.Push(new TriangleFace(leftPointData, startPointData, newPointData));
+        faceStack.Push(new TriangleFace(leftPointData, newPointData, endPointData));
     }
     private void SplitThreePart(ref TriangleFace triangleFace, ref Stack<TriangleFace> faceStack)
     {
@@ -189,6 +250,12 @@ public class GenSmallerPieces : IGenPieces
         faceStack.Push(new TriangleFace(midACData, midABData, midBCData));
         faceStack.Push(new TriangleFace(midACData, midBCData, triangleFace.pointC));
     }
+    public void SetCrossPoint(Vector3 crossPoint, bool infectedByCrossPoint = false, float distance2CrossPointPer = 0f)
+    {
+        this.crossPoint = crossPoint;
+        this.infectedByCrossPoint = infectedByCrossPoint;
+        this.distance2CrossPointPer = distance2CrossPointPer;
+    }
     /// <summary>
     /// 切割后的三角形面积会小于areaUnit
     /// </summary>
@@ -198,11 +265,19 @@ public class GenSmallerPieces : IGenPieces
     {
         Stack<TriangleFace> faceStack = new Stack<TriangleFace>();
         faceStack.Push(triangleFace);
+        float areaUnitLocal = areaUnit;
+        if (infectedByCrossPoint)
+        {
+            Vector3 barycentric;
+            triangleFace.ComputeBarycentric(out barycentric);
+
+            areaUnitLocal = areaUnit * (crossPoint - barycentric).magnitude / distance2CrossPointPer;
+        }
         while (faceStack.Count > 0)
         {
             var curFace = faceStack.Pop();
             float triangleArea = ComputeArea(ref curFace);
-            int count = (int)(triangleArea / areaUnit) + 1;
+            int count = (int)(triangleArea / areaUnitLocal) + 1;
             if (count <= 1)
             {
                 splitTriangleFace.Add(curFace);

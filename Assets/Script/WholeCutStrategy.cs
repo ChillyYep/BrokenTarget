@@ -7,15 +7,16 @@ public class WholeCutStrategy : ICutStrategy
     public IBreakable breakable { get; private set; }
     public List<ModelData> pecies { get; private set; }
 
-    private IGenPieces genPieces;
+    public IGenPieces genPieces { get; private set; }
     public WholeCutStrategy(IBreakable breakable, IGenPieces genPieces)
     {
         this.breakable = breakable;
         this.genPieces = genPieces;
+        pecies = new List<ModelData>();
     }
     public void Traversal()
     {
-        pecies = new List<ModelData>();
+        pecies.Clear();
         foreach (var target in breakable.ModelInfos)
         {
             TriangleFace breakableFace = new TriangleFace();
