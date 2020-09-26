@@ -10,7 +10,6 @@ namespace chenyi
     [RequireComponent(typeof(MeshRenderer))]
     public class BreakableObjBehaviour : MonoBehaviour
     {
-        public Transform parent;
         public float pieceDepth = 0.5f;
         public float areaUnit = 0.25f;
         [Range(0f, 1f)]
@@ -33,7 +32,8 @@ namespace chenyi
         public Vector2 boxInnerStartUV = Vector2.zero;
         [HideInInspector]
         public Vector2 boxInnerEndUV = Vector2.one;
-
+        [Tooltip("爆炸行为脚本开关状态")]
+        public bool swichOn = true;
         public Vector3 crossPointLocal
         {
             get
@@ -65,9 +65,6 @@ namespace chenyi
         private Vector3 _crossPointLocal;
         private IBreakable breakable;
         private ICutStrategy strategy;
-        private MeshFilter meshFilter;
-        private MeshRenderer meshRender;
-        private List<GameObject> peciesObj = new List<GameObject>();
 #if UNITY_EDITOR
         [Tooltip("仅在编辑器模式下生效")]
         [SerializeField]
@@ -75,111 +72,24 @@ namespace chenyi
 #endif
         private void Start()
         {
-            meshFilter = transform.GetComponent<MeshFilter>();
-            meshRender = transform.GetComponent<MeshRenderer>();
-            if (parent == null)
-            {
-                parent = transform.parent;
-            }
-            if (meshFilter)
-            {
-
-                breakable = new BreakableObj(meshFilter.mesh, transform);
-                strategy = new WholeCutStrategy(breakable, new GenSmallerPieces(new GenPyramidPieces(pieceDepth, boxInnerStartUV, boxInnerEndUV), areaUnit));
-            }
-            else
-            {
-                return;
-            }
+            breakable = new BreakableObj(this);
         }
-        public IBreakable GetBreakable()
+        public bool IsTrailRenderOn()
         {
-            return breakable;
-        }
-        public void Traversal()
-        {
-            switch (strategy.genPieces.GetEnumType())
-            {
-                case GenPiecesType.GenSmallerPieces:
-                    var genPieces = strategy.genPieces as GenSmallerPieces;
-                    if (areaEffectByDistance)
-                    {
-                        if (genPieces != null)
-                        {
-                            genPieces.SetCrossPoint(crossPointLocal, true, distance);
-                        }
-                    }
-                    break;
-            }
-            strategy.Traversal();
-        }
-        public void Explode()
-        {
-            if (meshFilter == null)
-            {
-                return;
-            }
-            Matrix4x4 local2World = transform.localToWorldMatrix;
-            Vector3 hitDirectionLocal = transform.worldToLocalMatrix.MultiplyVector(hitDirection);
-            hitDirectionLocal.Normalize();
-            hitDirection.Normalize();
-            List<Mesh> peciesMesh = new List<Mesh>();
-            peciesObj.Clear();
-            foreach (var item in strategy.pecies)
-            {
-                peciesMesh.Add(new Mesh()
-                {
-                    vertices = item.vertices.ToArray(),
-                    triangles = item.triangles.ToArray(),
-                    normals = item.normals.ToArray(),
-                    uv = item.uvs.ToArray()
-                });
-            }
-            for (int i = 0; i < peciesMesh.Count; ++i)
-            {
-                GameObject obj = new GameObject();
-                obj.AddComponent<MeshFilter>().mesh = peciesMesh[i];
-                var meshRenderer = obj.AddComponent<MeshRenderer>();
-                meshRenderer.material = new Material(meshRender.material);
-                obj.name = string.Format("{0} Pieces {1}", gameObject.name, i);
-                obj.transform.parent = parent;
-                obj.transform.position = transform.position;
-                obj.transform.localScale = transform.localScale;
-                obj.transform.localRotation = transform.localRotation;
 #if UNITY_EDITOR
-                if (trailRenderOn)
-                {
-                    var trailRender = obj.AddComponent<TrailRenderer>();
-                    trailRender.startWidth = 0.1f;
-                    trailRender.endWidth = 0.1f;
-                    trailRender.material = new Material(Shader.Find("Standard"));
-                    trailRender.material.color = Color.black;
-                }
+            return trailRenderOn;
+#else
+            return false;
 #endif
-                //物体空间下的计算
-                Vector3 offset = peciesMesh[i].bounds.center - meshFilter.mesh.bounds.center;
-                offset.Normalize();
-                Vector3 baseDir = hitDirectionLocal * hitStength + offset * (1 - hitStength);
-                //转到世界空间下的计算
-                baseDir = local2World.MultiplyVector(baseDir);
-                var rgBody = obj.AddComponent<Rigidbody>();
-                rgBody.mass = mass;
-                if (forceEffectedByDistance)
-                {
-                    float distance = (peciesMesh[i].bounds.center - crossPointLocal).magnitude;
-                    distance = distance > forceEffectRangeUnit ? forceEffectRangeUnit / distance : 1f;
-                    rgBody.AddForce((baseDir + Vector3.Dot(baseDir, hitDirection) * hitDirection * focusLevel).normalized * force * distance, ForceMode.Impulse);
-                }
-                else
-                {
-                    rgBody.AddForce((baseDir + Vector3.Dot(baseDir, hitDirection) * hitDirection * focusLevel).normalized * force, ForceMode.Impulse);
-                }
-                var collider = obj.AddComponent<MeshCollider>();
-                collider.convex = true;
-                collider.sharedMesh = peciesMesh[i];
-                peciesObj.Add(obj);
+        }
+        public void ExplodeImmediately()
+        {
+            if(swichOn)
+            {
+                breakable.BeforeExplode();
+                breakable.Explode();
+                breakable.AfterExplode();
             }
-            Destroy(gameObject);
         }
     }
 }

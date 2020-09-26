@@ -15,7 +15,7 @@ public class BrokenManager : MonoBehaviour
     public static BrokenManager Instance { get; private set; }
     private void Awake()
     {
-        if(Instance == null)
+        if (Instance == null)
         {
             Instance = this;
         }
@@ -48,6 +48,14 @@ public class BrokenManager : MonoBehaviour
             }
         }
     }
+    public void StartOver()
+    {
+        enabled = true;
+    }
+    public void Stop()
+    {
+        enabled = false;
+    }
     void Update()
     {
         ClearGizmos();
@@ -56,8 +64,7 @@ public class BrokenManager : MonoBehaviour
             var breakableBehaviour = crossTarget.GetComponent<BreakableObjBehaviour>();
             if (breakableBehaviour != null)
             {
-                breakableBehaviour.Traversal();
-                breakableBehaviour.Explode();
+                breakableBehaviour.ExplodeImmediately();
             }
         }
     }
