@@ -7,6 +7,16 @@ public enum ShapeType
     Cube,
     Sphere
 }
+public enum CutToPiecesPerTime
+{
+    CutToTwo = 0x01,
+    CutToThree = 0x02,
+    CutToFour = 0x04,
+    TwoAndThree = CutToTwo | CutToThree,
+    TwoAndFour = CutToTwo | CutToFour,
+    ThreeAndFour = CutToThree | CutToFour,
+    All = CutToTwo | CutToThree | CutToFour
+}
 /// <summary>
 /// 生成棱台式的碎块
 /// </summary>
@@ -28,7 +38,7 @@ public class GenFrustumPieces : IGenPieces
         List<ModelData> modelDatas = new List<ModelData>();
         ModelData modelInfo = new ModelData();
         modelDatas.Add(modelInfo);
-        modelInfo.Init();
+        modelInfo.AllocateStorage();
         Vector3 center = ((triangleFace.pointA.vertex + triangleFace.pointB.vertex) / 2f + triangleFace.pointC.vertex) / 2f;
         Vector3 modelCenter = center - triangleFace.normal * depth / 2f;
         Vector3 a2c = center - triangleFace.pointA.vertex;
@@ -76,12 +86,14 @@ public class GenPyramidPieces : IGenPieces
     private Vector2 beginUV;
     private Vector2 endUV;
     private ShapeType shapeType;
-    public GenPyramidPieces(float depth, Vector2 beginUV, Vector2 endUV, ShapeType shapeType = ShapeType.Cube)
+    private bool isNewVertexRandom;
+    public GenPyramidPieces(float depth, Vector2 beginUV, Vector2 endUV, bool isNewVertexRandom, ShapeType shapeType = ShapeType.Cube)
     {
         this.depth = depth;
         this.shapeType = shapeType;
         this.beginUV = beginUV;
         this.endUV = endUV;
+        this.isNewVertexRandom = isNewVertexRandom;
     }
     public GenPiecesType GetEnumType()
     {
@@ -114,10 +126,18 @@ public class GenPyramidPieces : IGenPieces
         List<ModelData> modelDatas = new List<ModelData>();
         ModelData modelInfo = new ModelData();
         modelDatas.Add(modelInfo);
-        modelInfo.Init();
-        float r1 = Random.value;
-        float r2 = Random.value;
-        Vector3 newPoint = r2 * (r1 * triangleFace.pointA.vertex + (1 - r1) * triangleFace.pointB.vertex) + (1 - r2) * triangleFace.pointC.vertex - triangleFace.normal * depth;
+        modelInfo.AllocateStorage();
+        Vector3 newPoint;
+        if (isNewVertexRandom)
+        {
+            float r1 = Random.value;
+            float r2 = Random.value;
+            newPoint = r2 * (r1 * triangleFace.pointA.vertex + (1 - r1) * triangleFace.pointB.vertex) + (1 - r2) * triangleFace.pointC.vertex - triangleFace.normal * depth;
+        }
+        else
+        {
+            newPoint = 0.5f * (0.5f * (triangleFace.pointA.vertex + triangleFace.pointB.vertex) + triangleFace.pointC.vertex) - triangleFace.normal * depth;
+        }
         Vector2 newUV = MapUV(newPoint, ref triangleFace);
         Vector2 newUVA = MapUV(triangleFace.pointA.vertex, ref triangleFace);
         Vector2 newUVB = MapUV(triangleFace.pointB.vertex, ref triangleFace);
@@ -167,7 +187,7 @@ public class GenPyramidPieces : IGenPieces
     }
 }
 /// <summary>
-/// 嵌套一个IGenPieces对象,曲面细分后再用该IGenPieces对象生成碎片
+/// 嵌套一个IGenPieces对象,三角面细化切割后再用该IGenPieces对象生成碎片
 /// </summary>
 public class GenSmallerPieces : IGenPieces
 {
@@ -177,10 +197,15 @@ public class GenSmallerPieces : IGenPieces
     private Vector3 crossPoint;
     private bool infectedByCrossPoint;
     private float distance2CrossPointPer;
-    public GenSmallerPieces(IGenPieces sonGenPieces, float areaUnit)
+    private CutToPiecesPerTime cutToPiecesPerTime;
+    private float maxAreaUnit;
+    private float minAreaUnit;
+    private bool limitAreaUnit;
+    public GenSmallerPieces(IGenPieces sonGenPieces, float areaUnit, CutToPiecesPerTime cutToPiecesPerTime)
     {
         this.sonGenPieces = sonGenPieces;
         this.areaUnit = areaUnit;
+        this.cutToPiecesPerTime = cutToPiecesPerTime;
     }
     public GenPiecesType GetEnumType()
     {
@@ -188,10 +213,10 @@ public class GenSmallerPieces : IGenPieces
     }
     private float ComputeArea(ref TriangleFace triangleFace)
     {
-        Vector3 ab = triangleFace.pointA.vertex - triangleFace.pointB.vertex;
+        Vector3 ab = triangleFace.pointB.vertex - triangleFace.pointA.vertex;
         Vector3 ac = triangleFace.pointC.vertex - triangleFace.pointA.vertex;
         float height = Mathf.Sqrt(Vector3.Dot(ab, ab) - Mathf.Pow(Vector3.Dot(ab, ac.normalized), 2f));
-        return height * ab.magnitude / 2f;
+        return height * ac.magnitude / 2f;
     }
     private void SplitTwoPart(ref TriangleFace triangleFace, ref Stack<TriangleFace> faceStack)
     {
@@ -250,11 +275,14 @@ public class GenSmallerPieces : IGenPieces
         faceStack.Push(new TriangleFace(midACData, midABData, midBCData));
         faceStack.Push(new TriangleFace(midACData, midBCData, triangleFace.pointC));
     }
-    public void SetCrossPoint(Vector3 crossPoint, bool infectedByCrossPoint = false, float distance2CrossPointPer = 0f)
+    public void SetCrossPoint(Vector3 crossPoint, bool infectedByCrossPoint = false, float distance2CrossPointPer = 0f, bool limitAreaUnit = false, float maxAreaUnit = 0f, float minAreaUnit = 0f)
     {
         this.crossPoint = crossPoint;
         this.infectedByCrossPoint = infectedByCrossPoint;
         this.distance2CrossPointPer = distance2CrossPointPer;
+        this.limitAreaUnit = limitAreaUnit;
+        this.maxAreaUnit = maxAreaUnit;
+        this.minAreaUnit = minAreaUnit;
     }
     /// <summary>
     /// 切割后的三角形面积会小于areaUnit
@@ -270,8 +298,22 @@ public class GenSmallerPieces : IGenPieces
         {
             Vector3 barycentric;
             triangleFace.ComputeBarycentric(out barycentric);
-
             areaUnitLocal = areaUnit * (crossPoint - barycentric).magnitude / distance2CrossPointPer;
+            if(limitAreaUnit)
+            {
+                if (maxAreaUnit < minAreaUnit)
+                {
+                    maxAreaUnit = minAreaUnit;
+                }
+                if (areaUnitLocal > maxAreaUnit)
+                {
+                    areaUnitLocal = maxAreaUnit;
+                }
+                else if (areaUnitLocal < minAreaUnit)
+                {
+                    areaUnitLocal = minAreaUnit;
+                }
+            }
         }
         while (faceStack.Count > 0)
         {
@@ -283,29 +325,32 @@ public class GenSmallerPieces : IGenPieces
                 splitTriangleFace.Add(curFace);
                 continue;
             }
-            if (count % 4 == 0)
+
+            //能整除的优先
+            if ((cutToPiecesPerTime & CutToPiecesPerTime.CutToFour) == CutToPiecesPerTime.CutToFour && count % 4 == 0)
             {
                 SplitFourPart(ref curFace, ref faceStack);
             }
-            else if (count % 3 == 0)
+            else if ((cutToPiecesPerTime & CutToPiecesPerTime.CutToThree) == CutToPiecesPerTime.CutToThree && count % 3 == 0)
             {
                 SplitThreePart(ref curFace, ref faceStack);
             }
-            else if (count % 2 == 0)
+            else if ((cutToPiecesPerTime & CutToPiecesPerTime.CutToTwo) == CutToPiecesPerTime.CutToTwo && count % 2 == 0)
             {
                 SplitTwoPart(ref curFace, ref faceStack);
             }
             else
             {
-                if (count / 2 > 0)
+                //优先级2》3》4
+                if ((cutToPiecesPerTime & CutToPiecesPerTime.CutToTwo) == CutToPiecesPerTime.CutToTwo && count / 2 > 0)
                 {
                     SplitTwoPart(ref curFace, ref faceStack);
                 }
-                else if (count / 3 > 0)
+                else if ((cutToPiecesPerTime & CutToPiecesPerTime.CutToThree) == CutToPiecesPerTime.CutToThree && count / 3 > 0)
                 {
                     SplitThreePart(ref curFace, ref faceStack);
                 }
-                else if (count / 4 > 0)
+                else
                 {
                     SplitFourPart(ref curFace, ref faceStack);
                 }

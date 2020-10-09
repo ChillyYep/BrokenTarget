@@ -50,9 +50,13 @@ namespace chenyi
             this.radius = radius;
 
         }
+        static public bool IsInSphere(Vector3 targetPoint, Vector3 sphereCenter, float sphereRadius)
+        {
+            return Vector3.Distance(targetPoint, sphereCenter) <= sphereRadius;
+        }
         public bool IsInSphere(Vector3 targetPoint)
         {
-            return Vector3.Distance(targetPoint, center) <= radius;
+            return IsInSphere(targetPoint, center, radius);
         }
         public void DrawMesh()
         {

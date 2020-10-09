@@ -9,11 +9,9 @@ namespace chenyi
         public Vector3 p1;
         public Vector3 p2;
         private const float diff = 0.01f;
-        private Vector3 p1p2;
-        private bool hasComputeDir = false;
         public bool ComputeCrossPoint(Line otherLine, out Vector3 crossPoint, bool noMatterLength = false)
         {
-            p1p2 = Dir();
+            Vector3 p1p2 = p2 - p1;
             Vector3 p3p4 = otherLine.p2 - otherLine.p1;
             float n;
             if (!Mathf.Approximately(p1p2.y * p3p4.x - p1p2.x * p3p4.y, 0f))
@@ -60,32 +58,23 @@ namespace chenyi
             {
                 return true;
             }
-            p1p2 = Dir();
+            Vector3 p1p2 = p2 - p1;
             Vector3 vector2 = p1p2.normalized;
             return (Mathf.Abs(vector1.x - vector2.x) < diff && Mathf.Abs(vector1.y - vector2.y) < diff && Mathf.Abs(vector1.z - vector2.z) < diff) ||
                 (Mathf.Abs(vector1.x + vector2.x) < diff && Mathf.Abs(vector1.y + vector2.y) < diff && Mathf.Abs(vector1.z + vector2.z) < diff);
         }
         public float Distance(Vector3 vertex)
         {
-            p1p2 = Dir();
+            Vector3 p1p2 = p2 - p1;
             Vector3 vector = vertex - p1;
             return Mathf.Sqrt(vector.magnitude * vector.magnitude - Mathf.Pow(Vector3.Dot(vector, p1p2.normalized), 2));
-        }
-        public Vector3 Dir()
-        {
-            if (!hasComputeDir)
-            {
-                p1p2 = p2 - p1;
-                hasComputeDir = true;
-            }
-            return p1p2;
         }
         /// <summary>
         /// 计算球与直线的两个交点
         /// </summary>
         public int ComputeCrossPointWithSphere(Vector3 center, float radius, out Vector3[] vectors, bool onLine = true)
         {
-            p1p2 = p2 - p1;
+            Vector3 p1p2 = p2 - p1;
             float A = Vector3.Dot(p1p2, p1p2);
             float B = Vector3.Dot(p1p2, p1) * 2f;
             float C = Vector3.Dot(p1, p1) - radius * radius;
@@ -306,7 +295,8 @@ namespace chenyi
         }
         public float Distance(Vector3 vertex)
         {
-            return Distance(vertex, this);
+            var vector = vertex - pointA.vertex;
+            return Mathf.Abs(Vector3.Dot(vector,normal));
         }
         public Vector3 Map2ThisFace(Vector3 vertex)
         {
