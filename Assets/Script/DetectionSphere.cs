@@ -1,7 +1,7 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-namespace chenyi
+namespace BrokenSys
 {
     public interface IDrawableGizmos
     {

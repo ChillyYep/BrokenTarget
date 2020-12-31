@@ -1,7 +1,8 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-namespace chenyi
+namespace BrokenSys
 {
     /// <summary>
     /// 可破碎对象
@@ -21,13 +22,14 @@ namespace chenyi
         public List<Vector3> vertices;
         public List<int> triangles;
         public List<Vector3> normals;
+        //public UVList uvList;
         public List<Vector2> uvs;
         public void AllocateStorage()
         {
             vertices = new List<Vector3>();
             triangles = new List<int>();
-            uvs = new List<Vector2>();
             normals = new List<Vector3>();
+            uvs = new List<Vector2>();
         }
     }
     /// <summary>
@@ -80,7 +82,7 @@ namespace chenyi
         {
             //爆炸后的一些处理
         }
-        private void GenPeicesDatas()
+        private void GenPeicesDatas(Action callback)
         {
             switch (strategy.genPieces.GetEnumType())
             {
@@ -93,14 +95,13 @@ namespace chenyi
                     }
                     break;
             }
+            //group.StartCoroutine(strategy.Travesal2(callback));
             strategy.Traversal();
+            if (callback != null)
+                callback();
         }
         private void ExplodePieces()
         {
-            Matrix4x4 local2World = transform.localToWorldMatrix;
-            Vector3 hitDirectionLocal = transform.worldToLocalMatrix.MultiplyVector(group.hitDirection);
-            hitDirectionLocal.Normalize();
-            group.hitDirection.Normalize();
             List<Mesh> peciesMesh = new List<Mesh>();
             peciesObj.Clear();
             foreach (var item in strategy.pecies)
@@ -140,7 +141,8 @@ namespace chenyi
         }
         private void ApplyForce()
         {
-            for(int i=0;i<peciesObj.Count;++i)
+            group.hitDirection.Normalize();
+            for (int i = 0; i < peciesObj.Count; ++i)
             {
                 //转到世界空间下的计算
                 Mesh peiceMesh = peciesObj[i].GetComponent<MeshFilter>().mesh;
@@ -148,22 +150,22 @@ namespace chenyi
                 offset = transform.localToWorldMatrix.MultiplyVector(offset);
                 offset.Normalize();
                 Vector3 baseDir = group.hitDirection * group.hitStength + offset;
-                baseDir.Normalize();
-                Vector3 focusDir = Vector3.Dot(baseDir, group.hitDirection) * group.hitDirection - baseDir;
+                Vector3 focusDir = Vector3.Dot(baseDir.normalized, group.hitDirection) * group.hitDirection - baseDir.normalized;
                 var rgBody = peciesObj[i].AddComponent<Rigidbody>();
-                rgBody.mass = group.mass;
-                rgBody.interpolation = RigidbodyInterpolation.Interpolate;
+                rgBody.mass = group.mass * UnityEngine.Random.Range(0.8f, 1.2f);
                 if (group.forceEffectedByDistance)
                 {
                     float distance = (peiceMesh.bounds.center - crossPointLocal).magnitude;
-                    distance = distance > group.forceEffectRangeUnit ? group.forceEffectRangeUnit / distance : 1f;
-                    var force = (baseDir + focusDir * group.focusLevel).normalized * group.force * distance;
+                    distance = distance > group.forceEffectRangeUnit ? Mathf.Pow(group.forceEffectRangeUnit / distance, group.forceFactor) : 1f;
+                    var force = (baseDir + focusDir * group.focusLevel) * group.force * distance;
                     rgBody.AddForce(force, ForceMode.Impulse);
+                    //rgBody.AddExplosionForce(force.magnitude, BrokenManager.Instance.crossPoint, 5f, 2f, ForceMode.Impulse);
                 }
                 else
                 {
                     var force = (baseDir + focusDir * group.focusLevel).normalized * group.force;
                     rgBody.AddForce(force, ForceMode.Impulse);
+                    //rgBody.AddExplosionForce(force.magnitude, BrokenManager.Instance.crossPoint, 5f, 2f, ForceMode.Impulse);
                 }
 
                 var collider = peciesObj[i].AddComponent<MeshCollider>();
@@ -173,8 +175,7 @@ namespace chenyi
         }
         public void Explode()
         {
-            GenPeicesDatas();
-            ExplodePieces();
+            GenPeicesDatas(ExplodePieces);
         }
     }
 }

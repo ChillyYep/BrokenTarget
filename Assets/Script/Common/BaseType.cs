@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace chenyi
+namespace BrokenSys
 {
     public class Line
     {
@@ -108,22 +108,34 @@ namespace chenyi
     }
     public struct VertexData
     {
-        public Vector3 vertex;
-        public Vector2 uv;
-        public Vector3 normal;
+        public readonly Vector3 vertex;
+        public readonly Vector2 uv;
+        public readonly Vector3 normal;
         public VertexData(Vector3 vertex, Vector2 uv, Vector3 normal)
         {
             this.vertex = vertex;
             this.uv = uv;
             this.normal = normal;
         }
+        public VertexData(Vector3 vertex, Vector3 normal)
+        {
+            this.vertex = vertex;
+            uv = new Vector2(0f, 0f);
+            this.normal = normal;
+        }
+        public VertexData(Vector3 vertex)
+        {
+            this.vertex = vertex;
+            uv = new Vector2(0f, 0f);
+            normal = new Vector3(0f, 0f, 0f);
+        }
     }
     public struct TriangleFace
     {
-        public Vector3 normal;
-        public VertexData pointA;
-        public VertexData pointB;
-        public VertexData pointC;
+        public readonly Vector3 normal;
+        public readonly VertexData pointA;
+        public readonly VertexData pointB;
+        public readonly VertexData pointC;
         private bool enableInterlopte;
         public TriangleFace(VertexData point1, VertexData point2, VertexData point3)
         {
@@ -138,27 +150,9 @@ namespace chenyi
         {
             normal = Vector3.Cross(point1 - point2, point1 - point3);
             normal.Normalize();
-            pointA = new VertexData() { vertex = point1 };
-            pointB = new VertexData() { vertex = point2 };
-            pointC = new VertexData() { vertex = point3 };
-            enableInterlopte = false;
-        }
-        public void ReCompute(VertexData point1, VertexData point2, VertexData point3)
-        {
-            normal = Vector3.Cross(point1.vertex - point2.vertex, point1.vertex - point3.vertex);
-            normal.Normalize();
-            pointA = point1;
-            pointB = point2;
-            pointC = point3;
-            enableInterlopte = true;
-        }
-        public void ReCompute(Vector3 point1, Vector3 point2, Vector3 point3)
-        {
-            normal = Vector3.Cross(point1 - point2, point1 - point3);
-            normal.Normalize();
-            pointA.vertex = point1;
-            pointB.vertex = point2;
-            pointC.vertex = point3;
+            pointA = new VertexData(point1);
+            pointB = new VertexData(point2);
+            pointC = new VertexData(point3);
             enableInterlopte = false;
         }
         public void ComputeBarycentric(out Vector3 barycentric)
@@ -196,7 +190,7 @@ namespace chenyi
         }
         public VertexData Interlopation(Vector3 vertex, bool normalInterlopte = true, bool uvInterlopte = false)
         {
-            VertexData triangleData = new VertexData() { vertex = vertex };
+            VertexData vertexData = new VertexData();
             //可以利用点与三边的距离来计算中心坐标
             if (enableInterlopte)
             {
@@ -217,66 +211,16 @@ namespace chenyi
                     w3 = w3 / W;
                     if (normalInterlopte)
                     {
-                        triangleData.normal = w1 * pointC.normal + w2 * pointB.normal + w3 * pointA.normal;
-                        triangleData.normal.Normalize();
+                        vertexData = new VertexData(vertex, w1 * pointC.normal + w2 * pointB.normal + w3 * pointA.normal);
+                        vertexData.normal.Normalize();
                     }
                     if (uvInterlopte)
                     {
-                        triangleData.uv = w1 * pointC.uv + w2 * pointB.uv + w3 * pointA.uv;
+                        vertexData = new VertexData(vertex, w1 * pointC.uv + w2 * pointB.uv + w3 * pointA.uv, w1 * pointC.normal + w2 * pointB.normal + w3 * pointA.normal);
                     }
                 }
-                //else
-                //{
-                //    float n;
-                //    float m;
-                //    if (!Mathf.Approximately(ab.y * ac.x - ab.x * ac.y, 0f))
-                //    {
-                //        n = (a2v.x * ab.y - ab.x * a2v.y) / (ab.y * ac.x - ab.x * ac.y);
-                //    }
-                //    else if (!Mathf.Approximately(ab.z * ac.x - ab.x * ac.z, 0f))
-                //    {
-                //        n = (a2v.x * ab.z - ab.x * a2v.z) / (ab.z * ac.x - ab.x * ac.z);
-                //    }
-                //    else if (!Mathf.Approximately(ab.y * ac.z - ab.z * ac.y, 0f))
-                //    {
-                //        n = (a2v.z * ab.y - ab.z * a2v.y) / (ab.y * ac.z - ab.z * ac.y);
-                //    }
-                //    else if (!Mathf.Approximately(ab.x * ac.z - ab.z * ac.x, 0f))
-                //    {
-                //        n = (a2v.z * ab.x - ab.z * a2v.x) / (ab.x * ac.z - ab.z * ac.x);
-                //    }
-                //    else if (!Mathf.Approximately(ab.x * ac.y - ab.y * ac.x, 0f))
-                //    {
-                //        n = (a2v.y * ab.x - ab.y * a2v.x) / (ab.x * ac.y - ab.y * ac.x);
-                //    }
-                //    else
-                //    {
-                //        n = (a2v.y * ab.z - ab.y * a2v.z) / (ab.z * ac.y - ab.y * ac.z);
-                //    }
-                //    if (!Mathf.Approximately(ab.x, 0f))
-                //    {
-                //        m = (a2v.x - n * ac.x) / ab.x;
-                //    }
-                //    else if (Mathf.Approximately(ab.x, 0f))
-                //    {
-                //        m = (a2v.y - n * ac.y) / ab.y;
-                //    }
-                //    else
-                //    {
-                //        m = (a2v.z - n * ac.z) / ab.z;
-                //    }
-                //    if (normalInterlopte)
-                //    {
-                //        triangleData.normal = m * pointC.normal + n * pointB.normal + (1 - m - n) * pointA.normal;
-                //    }
-                //    if (uvInterlopte)
-                //    {
-                //        Vector2 uvDelta = m * (pointB.uv - pointA.uv) + n * (pointC.uv - pointA.uv);
-                //        triangleData.uv = uvDelta + pointA.uv;
-                //    }
-                //}
             }
-            return triangleData;
+            return vertexData;
         }
         public bool IsAboveTriangle(Vector3 vertex)
         {
@@ -296,7 +240,7 @@ namespace chenyi
         public float Distance(Vector3 vertex)
         {
             var vector = vertex - pointA.vertex;
-            return Mathf.Abs(Vector3.Dot(vector,normal));
+            return Mathf.Abs(Vector3.Dot(vector, normal));
         }
         public Vector3 Map2ThisFace(Vector3 vertex)
         {

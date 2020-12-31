@@ -1,7 +1,7 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-namespace chenyi
+namespace BrokenSys
 {
     public class BreakableGroup : MonoBehaviour
     {
@@ -26,6 +26,8 @@ namespace chenyi
         public float minAreaUnit = 0.25f;
         [HideInInspector]
         public float forceEffectRangeUnit = 1f;
+        [HideInInspector]
+        public float forceFactor = 1f;
         [HideInInspector]
         public bool forceEffectedByDistance = true;
         [HideInInspector]
